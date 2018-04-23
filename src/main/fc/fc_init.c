@@ -78,6 +78,11 @@
 #include "drivers/vtx_common.h"
 
 #include "fc/cli.h"
+
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/dma_spi.h"
+#endif //USE_GYRO_IMUF9001
+
 #include "fc/config.h"
 #include "fc/fc_msp.h"
 #include "fc/fc_tasks.h"
@@ -568,6 +573,13 @@ void init(void)
     cliInit(serialConfig());
 #endif
 
+#ifdef USE_GYRO_IMUF9001
+    if(!gyroIsSane())
+    {
+        
+        ENABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
+    }
+#endif
     failsafeInit();
 
     rxInit();

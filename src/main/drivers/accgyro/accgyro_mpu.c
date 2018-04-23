@@ -45,6 +45,29 @@
 // Check busDevice scratchpad memory size
 STATIC_ASSERT(sizeof(mpuContextData_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchpad_memory_too_small);
 
+#ifdef USE_DMA_SPI_DEVICE
+#include "drivers/dma_spi.h"
+#include "sensors/gyro.h"
+#include "sensors/acceleration.h"
+#endif //USE_DMA_SPI_DEVICE
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#endif //USE_GYRO_IMUF9001
+
+#ifdef USE_DMA_SPI_DEVICE
+static volatile int dmaSpiGyroDataReady = 0;
+static volatile uint32_t imufCrcErrorCount = 0;
+#endif //USE_DMA_SPI_DEVICE
+
+#ifdef USE_GYRO_IMUF9001
+imufCommand_t dmaTxBuffer[58];
+imufCommand_t dmaRxBuffer[58];
+imufData_t imufData;
+#endif
+/*
+ * Gyro interrupt service routine
+ */
+
 static const gyroFilterAndRateConfig_t mpuGyroConfigs[] = {
     { GYRO_LPF_256HZ,   8000,   { MPU_DLPF_256HZ,   0  } },
     { GYRO_LPF_256HZ,   4000,   { MPU_DLPF_256HZ,   1  } },
@@ -138,3 +161,126 @@ bool mpuTemperatureReadScratchpad(gyroDev_t *gyro, int16_t * data)
 
     return false;
 }
+
+#ifdef USE_DMA_SPI_DEVICE
+bool mpuGyroDmaSpiReadStart(gyroDev_t * gyro)
+{
+    (void)(gyro); ///not used at this time
+    //no reason not to get acc and gyro data at the same time
+    lastImufExtiTime = micros();
+    #ifdef USE_GYRO_IMUF9001
+    if (isImufCalibrating == IMUF_IS_CALIBRATING) //calibrating
+    {
+        //two steps
+        //step 1 is isImufCalibrating=1, this starts the calibration command and sends it to the IMU-f
+        //step 2 is isImufCalibrating=2, this sets the tx buffer back to 0 so we don't keep sending the calibration command over and over
+        memset(dmaTxBuffer, 0, sizeof(imufCommand_t)); //clear buffer
+        //set calibration command with CRC, typecast the dmaTxBuffer as imufCommand_t
+        dmaTxBuffer->command = IMUF_COMMAND_CALIBRATE;
+        dmaTxBuffer->crc     = getCrcImuf9001((uint32_t *)dmaTxBuffer, 11); //typecast the dmaTxBuffer as a uint32_t array which is what the crc command needs
+        //set isImufCalibrating to step 2, which is just used so the memset to 0 runs after the calibration commmand is sent
+        isImufCalibrating = IMUF_DONE_CALIBRATING; //go to step two
+    }
+    else if (isImufCalibrating == IMUF_DONE_CALIBRATING)
+    {
+        // step 2, memset of the tx buffer has run, set isImufCalibrating to 0.
+        dmaTxBuffer->command = 0;
+        dmaTxBuffer->crc     = 0; //typecast the dmaTxBuffer as a uint32_t array which is what the crc command needs
+        imufEndCalibration();
+    }
+    memset(dmaRxBuffer, 0, gyroConfig()->imuf_mode); //clear buffer
+    //send and receive data using SPI and DMA
+    dmaSpiTransmitReceive((uint8_t*)dmaTxBuffer, (uint8_t*)dmaRxBuffer, gyroConfig()->imuf_mode, 0);
+    #else
+    dmaTxBuffer[0] = MPU_RA_ACCEL_XOUT_H | 0x80;
+    dmaSpiTransmitReceive((uint8_t*)dmaTxBuffer, (uint8_t*)dmaRxBuffer, 15, 0);
+    #endif
+    return true;
+}
+
+void mpuGyroDmaSpiReadFinish(gyroDev_t * gyro)
+{
+    //spi rx dma callback
+    #ifdef USE_GYRO_IMUF9001
+    volatile uint32_t crc1 = ( (*(uint32_t *)(dmaRxBuffer+gyroConfig()->imuf_mode-4)) & 0xFF );
+    volatile uint32_t crc2 = ( getCrcImuf9001((uint32_t *)(dmaRxBuffer), (gyroConfig()->imuf_mode >> 2)-1) & 0xFF );
+    if(crc1 == crc2)
+    {
+        memcpy(&imufData, dmaRxBuffer, sizeof(imufData_t));
+        acc.accADCf[X]    = imufData.accX * acc.dev.acc_1G;
+        acc.accADCf[Y]    = imufData.accY * acc.dev.acc_1G;
+        acc.accADCf[Z]    = imufData.accZ * acc.dev.acc_1G;
+        gyro->gyroADCRaw[X] = imufData.gyroX;
+        gyro->gyroADCRaw[Y] = imufData.gyroY;
+        gyro->gyroADCRaw[Z] = imufData.gyroZ;
+        if (gyroConfig()->imuf_mode == GTBCM_GYRO_ACC_QUAT_FILTER_F) {
+            imufQuat.w       = imufData.quaternionW;
+            imufQuat.x       = imufData.quaternionX;
+            imufQuat.y       = imufData.quaternionY;
+            imufQuat.z       = imufData.quaternionZ;
+        }
+    }
+    else
+    {
+        //error handler
+        imufCrcErrorCount++; //check every so often and cause a failsafe is this number is above a certain ammount
+    }
+    #else
+    acc.dev.ADCRaw[X]   = (int16_t)((dmaRxBuffer[1] << 8)  | dmaRxBuffer[2]);
+    acc.dev.ADCRaw[Y]   = (int16_t)((dmaRxBuffer[3] << 8)  | dmaRxBuffer[4]);
+    acc.dev.ADCRaw[Z]   = (int16_t)((dmaRxBuffer[5] << 8)  | dmaRxBuffer[6]);
+    gyro->gyroADCRaw[X] = (int16_t)((dmaRxBuffer[9] << 8)  | dmaRxBuffer[10]);
+    gyro->gyroADCRaw[Y] = (int16_t)((dmaRxBuffer[11] << 8) | dmaRxBuffer[12]);
+    gyro->gyroADCRaw[Z] = (int16_t)((dmaRxBuffer[13] << 8) | dmaRxBuffer[14]);
+    #endif
+    dmaSpiGyroDataReady = 1; //set flag to tell scheduler data is ready
+}
+#endif
+#if defined(MPU_INT_EXTI)
+static void mpuIntExtiHandler(extiCallbackRec_t *cb)
+{
+#ifdef USE_DMA_SPI_DEVICE
+    //start dma read
+    (void)(cb);
+    gyroDmaSpiStartRead();
+#else
+    #ifdef DEBUG_MPU_DATA_READY_INTERRUPT
+        static uint32_t lastCalledAtUs = 0;
+        const uint32_t nowUs = micros();
+        debug[0] = (uint16_t)(nowUs - lastCalledAtUs);
+        lastCalledAtUs = nowUs;
+    #endif
+        gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
+        gyro->dataReady = true;
+    #ifdef DEBUG_MPU_DATA_READY_INTERRUPT
+        const uint32_t now2Us = micros();
+        debug[1] = (uint16_t)(now2Us - nowUs);
+    #endif
+#endif
+}
+
+static void mpuIntExtiInit(gyroDev_t *gyro)
+{
+    if (gyro->mpuIntExtiTag == IO_TAG_NONE) {
+        return;
+    }
+
+    const IO_t mpuIntIO = IOGetByTag(gyro->mpuIntExtiTag);
+
+#ifdef ENSURE_MPU_DATA_READY_IS_LOW
+    uint8_t status = IORead(mpuIntIO);
+    if (status) {
+        return;
+    }
+#endif
+    IOInit(mpuIntIO, OWNER_MPU, RESOURCE_EXTI, 0);
+    EXTIHandlerInit(&gyro->exti, mpuIntExtiHandler);
+#if defined (STM32F7)
+    EXTIConfig(mpuIntIO, &gyro->exti, NVIC_PRIO_GYRO_INT_EXTI, IO_CONFIG(GPIO_MODE_INPUT,0,GPIO_NOPULL));   // TODO - maybe pullup / pulldown ?
+#else
+    IOConfigGPIO(mpuIntIO, IOCFG_IN_FLOATING);   // TODO - maybe pullup / pulldown ?
+    EXTIConfig(mpuIntIO, &gyro->exti, NVIC_PRIO_GYRO_INT_EXTI, EXTI_Trigger_Rising);
+    EXTIEnable(mpuIntIO, true);
+#endif
+}
+#endif // MPU_INT_EXTI
