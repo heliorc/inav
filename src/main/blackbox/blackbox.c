@@ -76,6 +76,9 @@
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
 
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#endif
 
 #if defined(ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT)
 #define DEFAULT_BLACKBOX_DEVICE     BLACKBOX_DEVICE_FLASH
@@ -1027,7 +1030,7 @@ void blackboxStart(void)
     blackboxHistory[1] = &blackboxHistoryRing[1];
     blackboxHistory[2] = &blackboxHistoryRing[2];
 
-    vbatReference = vbatLatestADC;
+    vbatReference = getBatteryVoltageLatestADC();
 
     //No need to clear the content of blackboxHistoryRing since our first frame will be an intra which overwrites it
 
@@ -1158,8 +1161,8 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->motor[i] = motor[i];
     }
 
-    blackboxCurrent->vbatLatest = vbatLatestADC;
-    blackboxCurrent->amperageLatest = amperageLatestADC;
+    blackboxCurrent->vbatLatest = getBatteryVoltageLatestADC();
+    blackboxCurrent->amperageLatest = getAmperageLatestADC();
 
 #ifdef USE_BARO
     blackboxCurrent->BaroAlt = baro.BaroAlt;
@@ -1174,7 +1177,7 @@ static void loadMainState(timeUs_t currentTimeUs)
     blackboxCurrent->surfaceRaw = rangefinderGetLatestRawAltitude();
 #endif
 
-    blackboxCurrent->rssi = rssi;
+    blackboxCurrent->rssi = getRSSI();
 
 #ifdef USE_SERVOS
     //Tail servo for tricopters
@@ -1381,7 +1384,6 @@ static bool blackboxWriteSysinfo(void)
             );
 
         BLACKBOX_PRINT_HEADER_LINE("looptime", "%d",                        getPidUpdateRate());
-        BLACKBOX_PRINT_HEADER_LINE("gyro_sync_denom", "%d",                 gyroConfig()->gyroSyncDenominator);
         BLACKBOX_PRINT_HEADER_LINE("rc_rate", "%d",                         100); //For compatibility reasons write rc_rate 100
         BLACKBOX_PRINT_HEADER_LINE("rc_expo", "%d",                         currentControlRateProfile->stabilized.rcExpo8);
         BLACKBOX_PRINT_HEADER_LINE("rc_yaw_expo", "%d",                     currentControlRateProfile->stabilized.rcYawExpo8);
@@ -1439,6 +1441,16 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("motor_pwm_rate", "%d",                  motorConfig()->motorPwmRate);
         BLACKBOX_PRINT_HEADER_LINE("debug_mode", "%d",                      systemConfig()->debug_mode);
         BLACKBOX_PRINT_HEADER_LINE("features", "%d",                        featureConfig()->enabledFeatures);
+        #ifdef USE_GYRO_IMUF9001
+        BLACKBOX_PRINT_HEADER_LINE("IMUF revision", " %d",                  imufCurrentVersion);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF mode", " %d",                      gyroConfig()->imuf_mode);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF roll q", " %d",                    gyroConfig()->imuf_roll_q);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF pitch q", " %d",                   gyroConfig()->imuf_pitch_q);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF yaw q", " %d",                     gyroConfig()->imuf_yaw_q);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF roll w", " %d",                    gyroConfig()->imuf_roll_w);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF pitch w", " %d",                   gyroConfig()->imuf_pitch_w);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF yaw w", " %d",                     gyroConfig()->imuf_yaw_w);
+        #endif
 #ifdef NAV_BLACKBOX
         BLACKBOX_PRINT_HEADER_LINE("waypoints", "%d,%d",                    getWaypointCount(),isWaypointListValid());
 #endif

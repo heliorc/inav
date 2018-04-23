@@ -19,6 +19,10 @@
 
 #include "drivers/exti.h"
 #include "drivers/sensor.h"
+#include "drivers/accgyro/accgyro.h"
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#endif
 
 #define MPU_I2C_ADDRESS                 0x68
 
@@ -34,6 +38,9 @@
 #define ICM20602_WHO_AM_I_CONST             (0x12)
 #define ICM20608G_WHO_AM_I_CONST            (0xAF)
 #define ICM20689_WHO_AM_I_CONST             (0x98)
+#ifdef USE_GYRO_IMUF9001
+#define IMUF9001_WHO_AM_I_CONST             IMUF_FIRMWARE_VERSION
+#endif
 
 
 // RA = Register Address
@@ -130,9 +137,25 @@
 // RF = Register Flag
 #define MPU_RF_DATA_RDY_EN (1 << 0)
 
+#define MPU_DLPF_10HZ           0x05
+#define MPU_DLPF_20HZ           0x04
+#define MPU_DLPF_42HZ           0x03
+#define MPU_DLPF_98HZ           0x02
+#define MPU_DLPF_188HZ          0x01
+#define MPU_DLPF_256HZ          0x00
+
 typedef struct mpuConfiguration_s {    
     uint8_t gyroReadXRegister; // Y and Z must registers follow this, 2 words each
 } mpuConfiguration_t;
+
+typedef struct __attribute__ ((__packed__)) mpuContextData_s {
+    uint16_t    chipMagicNumber;
+    uint8_t     lastReadStatus;
+    uint8_t     __padding;
+    uint8_t     accRaw[6];  // MPU_RA_ACCEL_XOUT_H
+    uint8_t     tempRaw[2]; // MPU_RA_TEMP_OUT_H
+    uint8_t     gyroRaw[6]; // MPU_RA_GYRO_XOUT_H
+} mpuContextData_t;
 
 enum gyro_fsr_e {
     INV_FSR_250DPS = 0,
@@ -163,11 +186,22 @@ enum accel_fsr_e {
 };
 
 struct gyroDev_s;
-void mpuIntExtiInit(struct gyroDev_s *gyro);
-
 struct accDev_s;
-bool mpuAccRead(struct accDev_s *acc);
+
+const gyroFilterAndRateConfig_t * mpuChooseGyroConfig(uint8_t desiredLpf, uint16_t desiredRateHz);
 bool mpuGyroRead(struct gyroDev_s *gyro);
+bool mpuGyroReadScratchpad(struct gyroDev_s *gyro);
+bool mpuAccReadScratchpad(struct accDev_s *acc);
+bool mpuTemperatureReadScratchpad(struct gyroDev_s *gyro, int16_t * data);
 void mpuDetect(struct gyroDev_s *gyro);
 bool mpuCheckDataReady(struct gyroDev_s *gyro);
 void mpuGyroSetIsrUpdate(struct gyroDev_s *gyro, sensorGyroUpdateFuncPtr updateFn);
+#if defined(MPU_INT_EXTI)
+static void mpuIntExtiInit(gyroDev_t *gyro)
+#endif
+#ifdef USE_DMA_SPI_DEVICE
+static volatile int dmaSpiGyroDataReady;
+static volatile uint32_t imufCrcErrorCount;
+bool mpuGyroDmaSpiReadStart(struct gyroDev_s *gyro);
+void mpuGyroDmaSpiReadFinish(struct gyroDev_s *gyro);
+#endif

@@ -196,12 +196,17 @@ void busSetSpeed(const busDevice_t * dev, busSpeed_e speed)
 
 uint32_t busDeviceReadScratchpad(const busDevice_t * dev)
 {
-    return dev->scratchpad;
+    return dev->scratchpad[0];
 }
 
 void busDeviceWriteScratchpad(busDevice_t * dev, uint32_t value)
 {
-    dev->scratchpad = value;
+    dev->scratchpad[0] = value;
+}
+
+void * busDeviceGetScratchpadMemory(const busDevice_t * dev)
+{
+    return (void *)dev->scratchpad;
 }
 
 bool busTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length)
@@ -272,6 +277,9 @@ bool busWriteBuf(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uin
 
 bool busWrite(const busDevice_t * dev, uint8_t reg, uint8_t data)
 {
+    #ifdef USE_DMA_SPI_DEVICE
+    return spiBusWriteRegister(dev, reg & 0x7f, data);
+    #else
     switch (dev->busType) {
         case BUSTYPE_SPI:
 #ifdef USE_SPI
@@ -295,10 +303,14 @@ bool busWrite(const busDevice_t * dev, uint8_t reg, uint8_t data)
         default:
             return false;
     }
+    #endif    
 }
 
 bool busReadBuf(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length)
 {
+    #ifdef USE_DMA_SPI_DEVICE
+        return spiBusReadRegisterBuffer(dev, reg | 0x80, data, length);
+    #else
     switch (dev->busType) {
         case BUSTYPE_SPI:
 #ifdef USE_SPI
@@ -322,10 +334,16 @@ bool busReadBuf(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t le
         default:
             return false;
     }
+    #endif    
 }
 
 bool busRead(const busDevice_t * dev, uint8_t reg, uint8_t * data)
 {
+    #ifdef USE_DMA_SPI_DEVICE
+    uint8_t data;
+    busReadRegisterBuffer(busdev, reg, &data, 1);
+    return data;
+    #else
     switch (dev->busType) {
         case BUSTYPE_SPI:
 #ifdef USE_SPI
@@ -349,4 +367,5 @@ bool busRead(const busDevice_t * dev, uint8_t reg, uint8_t * data)
         default:
             return false;
     }
+    #endif
 }

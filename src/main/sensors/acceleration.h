@@ -19,6 +19,7 @@
 
 #include "common/axis.h"
 #include "common/maths.h"
+#include "common/vector.h"
 #include "config/parameter_group.h"
 #include "drivers/accgyro/accgyro.h"
 #include "sensors/sensors.h"
@@ -38,7 +39,8 @@ typedef enum {
     ACC_MPU6000 = 7,
     ACC_MPU6500 = 8,
     ACC_MPU9250 = 9,
-    ACC_FAKE = 10,
+    ACC_IMUF9001 = 10,    
+    ACC_FAKE = 11,
     ACC_MAX = ACC_FAKE
 } accelerationSensor_e;
 
@@ -65,7 +67,7 @@ PG_DECLARE(accelerometerConfig_t, accelerometerConfig);
 bool accInit(uint32_t accTargetLooptime);
 bool accIsCalibrationComplete(void);
 void accSetCalibrationCycles(uint16_t calibrationCyclesRequired);
-void accGetMeasuredAcceleration(t_fp_vector *measuredAcc);
+void accGetMeasuredAcceleration(fpVector3_t *measuredAcc);
 void accUpdate(void);
 void accSetCalibrationValues(void);
 void accInitFilters(void);

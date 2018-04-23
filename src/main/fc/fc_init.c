@@ -32,6 +32,7 @@
 #include "common/color.h"
 #include "common/maths.h"
 #include "common/printf.h"
+#include "common/memory.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -48,7 +49,6 @@
 #include "drivers/exti.h"
 #include "drivers/flash_m25p16.h"
 #include "drivers/gpio.h"
-#include "drivers/gyro_sync.h"
 #include "drivers/inverter.h"
 #include "drivers/io.h"
 #include "drivers/io_pca9685.h"
@@ -71,7 +71,6 @@
 #include "drivers/time.h"
 #include "drivers/timer.h"
 #include "drivers/vcd.h"
-#include "drivers/gyro_sync.h"
 #include "drivers/io.h"
 #include "drivers/exti.h"
 #include "drivers/io_pca9685.h"
@@ -79,6 +78,11 @@
 #include "drivers/vtx_common.h"
 
 #include "fc/cli.h"
+
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/dma_spi.h"
+#endif //USE_GYRO_IMUF9001
+
 #include "fc/config.h"
 #include "fc/fc_msp.h"
 #include "fc/fc_tasks.h"
@@ -246,8 +250,6 @@ void init(void)
     // Early initialize USB hardware
     usbVcpInitHardware();
 #endif
-
-    delay(500);
 
     timerInit();  // timer must be initialized before any channel is allocated
 
@@ -508,8 +510,10 @@ void init(void)
     adcInit(&adc_params);
 #endif
 
-    /* Extra 500ms delay prior to initialising hardware if board is cold-booting */
 #if defined(USE_GPS) || defined(USE_MAG)
+    delay(500);
+
+    /* Extra 500ms delay prior to initialising hardware if board is cold-booting */
     if (!isMPUSoftReset()) {
         addBootlogEvent2(BOOT_EVENT_EXTRA_BOOT_DELAY, BOOT_EVENT_FLAGS_NONE);
 
@@ -569,6 +573,13 @@ void init(void)
     cliInit(serialConfig());
 #endif
 
+#ifdef USE_GYRO_IMUF9001
+    if(!gyroIsSane())
+    {
+        
+        ENABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
+    }
+#endif
     failsafeInit();
 
     rxInit();
