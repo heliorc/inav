@@ -309,7 +309,7 @@ bool busWrite(const busDevice_t * dev, uint8_t reg, uint8_t data)
 bool busReadBuf(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length)
 {
     #ifdef USE_DMA_SPI_DEVICE
-        return spiBusReadRegisterBuffer(dev, reg | 0x80, data, length);
+        return spiBusReadBuffer(dev, reg | 0x80, data, length);
     #else
     switch (dev->busType) {
         case BUSTYPE_SPI:
@@ -340,9 +340,7 @@ bool busReadBuf(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t le
 bool busRead(const busDevice_t * dev, uint8_t reg, uint8_t * data)
 {
     #ifdef USE_DMA_SPI_DEVICE
-    uint8_t data;
-    busReadRegisterBuffer(busdev, reg, &data, 1);
-    return data;
+    return spiBusReadBuffer(dev, reg, data, 1);
     #else
     switch (dev->busType) {
         case BUSTYPE_SPI:

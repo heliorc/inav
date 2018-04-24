@@ -10,6 +10,8 @@ typedef enum dma_spi_read_status_e {
 } dma_spi_read_status_t;
 
 extern volatile dma_spi_read_status_t dmaSpiReadStatus;
+extern uint8_t dmaTxBuffer[58];
+extern uint8_t dmaRxBuffer[58];
 
 extern void dmaSpicleanupspi(void);
 extern void dmaSpiInit(void);

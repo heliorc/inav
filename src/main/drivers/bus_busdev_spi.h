@@ -17,5 +17,4 @@
 
 #pragma once
 
-bool spiBusTransfer(const busDevice_t *bus, const uint8_t *txData, uint8_t *rxData, int length);
-void spiBusSetInstance(const busDevice_t *dev, SPI_TypeDef *instance);
+bool spiBusTransfer(const busDevice_t * dev, const uint8_t *txData, uint8_t *rxData, int length);

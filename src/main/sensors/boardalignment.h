@@ -31,3 +31,4 @@ void initBoardAlignment(void);
 void updateBoardAlignment(int16_t roll, int16_t pitch);
 void applySensorAlignment(int32_t * dest, int32_t * src, uint8_t rotation);
 void applyBoardAlignment(int32_t *vec);
+bool isBoardAlignmentStandard(const boardAlignment_t *boardAlignment);

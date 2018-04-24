@@ -31,8 +31,6 @@
 #define GYRO_LPF_5HZ        6
 #define GYRO_LPF_NONE       7
 
-#define IO_TAG_NONE 0
-
 typedef struct {
     uint8_t gyroLpf;
     uint16_t gyroRateHz;

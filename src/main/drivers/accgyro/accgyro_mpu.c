@@ -60,8 +60,8 @@ static volatile uint32_t imufCrcErrorCount = 0;
 #endif //USE_DMA_SPI_DEVICE
 
 #ifdef USE_GYRO_IMUF9001
-imufCommand_t dmaTxBuffer[58];
-imufCommand_t dmaRxBuffer[58];
+imufCommand_t *dmaTxBufferImufCmdPtr = (imufCommand_t *)dmaTxBuffer;
+imufCommand_t *dmaRxBufferImufCmdPtr = (imufCommand_t *)dmaRxBuffer;
 imufData_t imufData;
 #endif
 /*
@@ -73,7 +73,7 @@ static const gyroFilterAndRateConfig_t mpuGyroConfigs[] = {
     { GYRO_LPF_256HZ,   4000,   { MPU_DLPF_256HZ,   1  } },
     { GYRO_LPF_256HZ,   2000,   { MPU_DLPF_256HZ,   3  } },
     { GYRO_LPF_256HZ,   1000,   { MPU_DLPF_256HZ,   7  } },
-    { GYRO_LPF_256HZ,    666,   { MPU_DLPF_256HZ,   11  } },
+    { GYRO_LPF_256HZ,    666,   { MPU_DLPF_256HZ,   11 } },
     { GYRO_LPF_256HZ,    500,   { MPU_DLPF_256HZ,   15 } },
 
     { GYRO_LPF_188HZ,   1000,   { MPU_DLPF_188HZ,   0  } },
@@ -176,16 +176,16 @@ bool mpuGyroDmaSpiReadStart(gyroDev_t * gyro)
         //step 2 is isImufCalibrating=2, this sets the tx buffer back to 0 so we don't keep sending the calibration command over and over
         memset(dmaTxBuffer, 0, sizeof(imufCommand_t)); //clear buffer
         //set calibration command with CRC, typecast the dmaTxBuffer as imufCommand_t
-        dmaTxBuffer->command = IMUF_COMMAND_CALIBRATE;
-        dmaTxBuffer->crc     = getCrcImuf9001((uint32_t *)dmaTxBuffer, 11); //typecast the dmaTxBuffer as a uint32_t array which is what the crc command needs
+        dmaTxBufferImufCmdPtr->command = IMUF_COMMAND_CALIBRATE;
+        dmaTxBufferImufCmdPtr->crc     = getCrcImuf9001((uint32_t *)dmaTxBuffer, 11); //typecast the dmaTxBuffer as a uint32_t array which is what the crc command needs
         //set isImufCalibrating to step 2, which is just used so the memset to 0 runs after the calibration commmand is sent
         isImufCalibrating = IMUF_DONE_CALIBRATING; //go to step two
     }
     else if (isImufCalibrating == IMUF_DONE_CALIBRATING)
     {
         // step 2, memset of the tx buffer has run, set isImufCalibrating to 0.
-        dmaTxBuffer->command = 0;
-        dmaTxBuffer->crc     = 0; //typecast the dmaTxBuffer as a uint32_t array which is what the crc command needs
+        dmaTxBufferImufCmdPtr->command = 0;
+        dmaTxBufferImufCmdPtr->crc     = 0; //typecast the dmaTxBuffer as a uint32_t array which is what the crc command needs
         imufEndCalibration();
     }
     memset(dmaRxBuffer, 0, gyroConfig()->imuf_mode); //clear buffer
@@ -236,51 +236,3 @@ void mpuGyroDmaSpiReadFinish(gyroDev_t * gyro)
     dmaSpiGyroDataReady = 1; //set flag to tell scheduler data is ready
 }
 #endif
-#if defined(MPU_INT_EXTI)
-static void mpuIntExtiHandler(extiCallbackRec_t *cb)
-{
-#ifdef USE_DMA_SPI_DEVICE
-    //start dma read
-    (void)(cb);
-    gyroDmaSpiStartRead();
-#else
-    #ifdef DEBUG_MPU_DATA_READY_INTERRUPT
-        static uint32_t lastCalledAtUs = 0;
-        const uint32_t nowUs = micros();
-        debug[0] = (uint16_t)(nowUs - lastCalledAtUs);
-        lastCalledAtUs = nowUs;
-    #endif
-        gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
-        gyro->dataReady = true;
-    #ifdef DEBUG_MPU_DATA_READY_INTERRUPT
-        const uint32_t now2Us = micros();
-        debug[1] = (uint16_t)(now2Us - nowUs);
-    #endif
-#endif
-}
-
-static void mpuIntExtiInit(gyroDev_t *gyro)
-{
-    if (gyro->mpuIntExtiTag == IO_TAG_NONE) {
-        return;
-    }
-
-    const IO_t mpuIntIO = IOGetByTag(gyro->mpuIntExtiTag);
-
-#ifdef ENSURE_MPU_DATA_READY_IS_LOW
-    uint8_t status = IORead(mpuIntIO);
-    if (status) {
-        return;
-    }
-#endif
-    IOInit(mpuIntIO, OWNER_MPU, RESOURCE_EXTI, 0);
-    EXTIHandlerInit(&gyro->exti, mpuIntExtiHandler);
-#if defined (STM32F7)
-    EXTIConfig(mpuIntIO, &gyro->exti, NVIC_PRIO_GYRO_INT_EXTI, IO_CONFIG(GPIO_MODE_INPUT,0,GPIO_NOPULL));   // TODO - maybe pullup / pulldown ?
-#else
-    IOConfigGPIO(mpuIntIO, IOCFG_IN_FLOATING);   // TODO - maybe pullup / pulldown ?
-    EXTIConfig(mpuIntIO, &gyro->exti, NVIC_PRIO_GYRO_INT_EXTI, EXTI_Trigger_Rising);
-    EXTIEnable(mpuIntIO, true);
-#endif
-}
-#endif // MPU_INT_EXTI

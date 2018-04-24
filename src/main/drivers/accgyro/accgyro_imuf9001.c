@@ -24,9 +24,9 @@
 #include "platform.h"
 
 #include "sensors/gyro.h"
-#include "drivers/accgyro.h"
-#include "drivers/accgyro_mpu.h"
-#include "drivers/accgyro_imuf9001.h"
+#include "drivers/accgyro/accgyro.h"
+#include "drivers/accgyro/accgyro_mpu.h"
+#include "drivers/accgyro/accgyro_imuf9001.h"
 
 #include "common/axis.h"
 #include "common/maths.h"
@@ -171,7 +171,7 @@ int imuf9001Whoami(const gyroDev_t *gyro)
     return (0);
 }
 
-uint8_t imuf9001SpiDetect(const gyroDev_t *gyro)
+uint8_t imuf9001SpiDetect(gyroDev_t *gyro)
 {
     static bool hardwareInitialised = false;
 
@@ -182,7 +182,7 @@ uint8_t imuf9001SpiDetect(const gyroDev_t *gyro)
 
     #ifdef USE_GYRO_IMUF9001
     #ifdef IMUF9001_SPI_INSTANCE
-        spiBusSetInstance(gyro->busDev, IMUF9001_SPI_INSTANCE);
+        gyro->busDev = busDeviceInit(BUSTYPE_SPI, DEVHW_IMUF9001, gyro->imuSensorToUse, OWNER_MPU);
     #else
         #error IMUF9001 is SPI only
     #endif
@@ -204,7 +204,6 @@ uint8_t imuf9001SpiDetect(const gyroDev_t *gyro)
     #endif
 
     crcConfig();
-    //making pancakes
     //config exti as input, not exti for now
     IOInit(IOGetByTag( IO_TAG(MPU_INT_EXTI) ), OWNER_MPU, RESOURCE_EXTI, 0);
     IOConfigGPIO(IOGetByTag( IO_TAG(MPU_INT_EXTI) ), IOCFG_IPD);
@@ -287,7 +286,7 @@ void imufSpiGyroInit(gyroDev_t *gyro)
         if (imuf9001SendReceiveCommand(gyro, IMUF_COMMAND_SETUP, &txData, &rxData))
         {
             //enable EXTI
-            mpuIntExtiInit(gyro);
+            gyroIntExtiInit(gyro);
             return;
         }
     }

@@ -87,6 +87,9 @@ typedef enum {
     /* Combined ACC/GYRO/MAG chips */
     DEVHW_MPU9250,
 
+    /* IMU chips */
+    DEVHW_IMUF9001,
+
     /* Barometer chips */
     DEVHW_BMP085,
     DEVHW_BMP280,

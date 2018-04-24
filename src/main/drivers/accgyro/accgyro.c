@@ -41,6 +41,8 @@
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
 
+#include "sensors/gyro.h"
+
 const gyroFilterAndRateConfig_t * chooseGyroConfig(uint8_t desiredLpf, uint16_t desiredRateHz, const gyroFilterAndRateConfig_t * configs, int count)
 {
     int i;
@@ -76,11 +78,17 @@ const gyroFilterAndRateConfig_t * chooseGyroConfig(uint8_t desiredLpf, uint16_t 
 #if defined(USE_MPU_DATA_READY_SIGNAL) && defined(USE_EXTI)
 static void gyroIntExtiHandler(extiCallbackRec_t *cb)
 {
-    gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
-    gyro->dataReady = true;
-    if (gyro->updateFn) {
-        gyro->updateFn(gyro);
-    }
+    #ifdef USE_DMA_SPI_DEVICE
+        //start dma read
+        (void)(cb);
+        gyroDmaSpiStartRead();
+    #else
+        gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
+        gyro->dataReady = true;
+        if (gyro->updateFn) {
+            gyro->updateFn(gyro);
+        }
+    #endif
 }
 #endif
 

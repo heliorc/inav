@@ -112,7 +112,6 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyroMovementCalibrationThreshold = 32,
     .looptime = 62,
     .gyroSync = 0,
-    .gyroSyncDenominator = 1,
     .gyro_to_use = 0,
     .gyro_soft_notch_hz_1 = 0,
     .gyro_soft_notch_cutoff_1 = 1,
@@ -382,8 +381,8 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, gyroCalibration_t
         }
 
         #ifdef USE_GYRO_IMUF9001
-        gyroCalibration->g[axis] += (int32_t)(gyroSensor->gyroDev.gyroADC[axis] * 16.4f); //imuf sends floats, so we need to scale it because bf is hard coded to look for float times 16.4
-        devPush(&gyroCalibration->var[axis], (gyroSensor->gyroDev.gyroADC[axis] * 16.4f)); //imuf sends floats, so we need to scale it because bf is hard coded to look for float times 16.4
+        gyroCalibration->g[axis] += (int32_t)(gyro.gyroADCf[axis] * 16.4f); //imuf sends floats, so we need to scale it because bf is hard coded to look for float times 16.4
+        devPush(&gyroCalibration->var[axis], (gyro.gyroADCf[axis] * 16.4f)); //imuf sends floats, so we need to scale it because bf is hard coded to look for float times 16.4
         #else
         // Sum up CALIBRATING_GYRO_CYCLES readings
         gyroCalibration->g[axis] += dev->gyroADCRaw[axis];
@@ -402,7 +401,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, gyroCalibration_t
             }
             #ifdef USE_GYRO_IMUF9001
             dev->gyroZero[axis] = 0.0f;
-            &gyroCalibration->var[axis] = 0.0f;
+            devClear(&gyroCalibration->var[axis]);
             #else
             // calibration complete, so set the gyro zero values            
             dev->gyroZero[axis] = (gyroCalibration->g[axis] + (CALIBRATING_GYRO_CYCLES / 2)) / CALIBRATING_GYRO_CYCLES;
@@ -459,9 +458,9 @@ void gyroUpdate(timeDelta_t gyroUpdateDeltaUs)
     #endif
     #ifdef USE_GYRO_IMUF9001
     if (isCalibrationComplete(&gyroCalibration)){
-        gyroADC[X] = (int32_t)gyroDev0.gyroADC[X];
-        gyroADC[Y] = (int32_t)gyroDev0.gyroADC[Y];
-        gyroADC[Z] = (int32_t)gyroDev0.gyroADC[Z];
+        gyroADC[X] = (int32_t)gyro.gyroADCf[X];
+        gyroADC[Y] = (int32_t)gyro.gyroADCf[Y];
+        gyroADC[Z] = (int32_t)gyro.gyroADCf[Z];
     } else {
         performGyroCalibration(&gyroDev0, &gyroCalibration, gyroConfig()->gyroMovementCalibrationThreshold);
         // Reset gyro values to zero to prevent other code from using uncalibrated data
@@ -590,15 +589,15 @@ uint16_t returnGyroAlignmentForImuf9001(void)
 #endif
 
 #ifdef USE_DMA_SPI_DEVICE
-FAST_CODE void gyroDmaSpiFinishRead(void)
+void gyroDmaSpiFinishRead(void)
 {
     //called by dma callback
-    mpuGyroDmaSpiReadFinish(&gyroSensor1.gyroDev);
+    mpuGyroDmaSpiReadFinish(&gyroDev0);
 }
 
-FAST_CODE void gyroDmaSpiStartRead(void)
+void gyroDmaSpiStartRead(void)
 {
     //called by scheduler
-    gyroSensor1.gyroDev.readFn(&gyroSensor1.gyroDev);
+    gyroDev0.readFn(&gyroDev0);
 }
 #endif

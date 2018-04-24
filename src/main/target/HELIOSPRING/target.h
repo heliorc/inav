@@ -44,7 +44,6 @@
 #define MPU_INT_EXTI            PB0
 #define USE_MPU_DATA_READY_SIGNAL
 
-
 #define USE_DSHOT_DMAR
 #define ENABLE_DSHOT_DMAR       true
 
@@ -174,6 +173,10 @@
 #define ESCSERIAL_TIMER_TX_PIN  NONE  // (HARDARE=0,PPM)
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
+// Number of available PWM outputs
+#define MAX_PWM_OUTPUT_PORTS    4
+#define TARGET_MOTOR_COUNT      4
+
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
@@ -184,17 +187,13 @@
 
 #define IMUF_BIT_I2C_IF_DIS              (1 << 4)
 
-
 #define USE_ADC
-#define ADC_INSTANCE                   ADC1
-#define DEFAULT_VOLTAGE_METER_SOURCE   VOLTAGE_METER_ADC
-#define DEFAULT_CURRENT_METER_SOURCE   CURRENT_METER_ADC
-#define CURRENT_METER_ADC_PIN          PA1
-#define VBAT_ADC_PIN                   PA0
-#define CURRENT_METER_SCALE_DEFAULT    400
-#define VBAT_SCALE                     109
-
-#define CAMERA_CONTROL_PIN             PB6    // define dedicated camera_osd_control pin
+#define ADC_CHANNEL_1_PIN               PA1
+#define ADC_CHANNEL_2_PIN               PA0
+#define ADC_CHANNEL_3_PIN               PC2
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
+#define VBAT_ADC_CHANNEL                ADC_CHN_2
+#define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 #define IMUF_DEFAULT_PITCH_Q 3500
 #define IMUF_DEFAULT_PITCH_W 6

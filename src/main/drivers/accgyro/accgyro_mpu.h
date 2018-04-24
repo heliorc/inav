@@ -196,9 +196,6 @@ bool mpuTemperatureReadScratchpad(struct gyroDev_s *gyro, int16_t * data);
 void mpuDetect(struct gyroDev_s *gyro);
 bool mpuCheckDataReady(struct gyroDev_s *gyro);
 void mpuGyroSetIsrUpdate(struct gyroDev_s *gyro, sensorGyroUpdateFuncPtr updateFn);
-#if defined(MPU_INT_EXTI)
-static void mpuIntExtiInit(gyroDev_t *gyro);
-#endif
 #ifdef USE_DMA_SPI_DEVICE
 static volatile int dmaSpiGyroDataReady;
 static volatile uint32_t imufCrcErrorCount;
