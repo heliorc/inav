@@ -145,6 +145,11 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
     return 0;
 }
 
+static int updateImuf(void)
+{
+    return 0;
+}
+
 int imuf9001Whoami(const gyroDev_t *gyro)
 {
     uint32_t attempt;
@@ -157,11 +162,9 @@ int imuf9001Whoami(const gyroDev_t *gyro)
             imufCurrentVersion = (*(imufVersion_t *)&(reply.param1)).firmware;
             if (imufCurrentVersion < IMUF_FIRMWARE_VERSION) {
                 //force update
-                if( (*((__IO uint32_t *)UPT_ADDRESS)) != 0xFFFFFFFF )
+                if (!updateImuf())
                 {
-                    (*((__IO uint32_t *)0x2001FFEC)) = 0xF431FA77;
-                    delay(10);
-                    systemReset();
+                    return 0;
                 }
             } else {
                 return IMUF_FIRMWARE_VERSION;
