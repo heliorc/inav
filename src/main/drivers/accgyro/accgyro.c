@@ -94,6 +94,8 @@ static void gyroIntExtiHandler(extiCallbackRec_t *cb)
 
 void gyroIntExtiInit(gyroDev_t *gyro)
 {
+    gyro->busDev->irqPin = IOGetByTag(IO_TAG(MPU_INT_EXTI));
+
     if (!gyro->busDev->irqPin) {
         return;
     }
@@ -112,12 +114,12 @@ void gyroIntExtiInit(gyroDev_t *gyro)
     EXTIHandlerInit(&gyro->exti, gyroIntExtiHandler);
     EXTIConfig(gyro->busDev->irqPin, &gyro->exti, NVIC_PRIO_GYRO_INT_EXTI, IO_CONFIG(GPIO_MODE_INPUT,0,GPIO_NOPULL));   // TODO - maybe pullup / pulldown ?
 #else
-    IOInit(gyro->busDev->irqPin, OWNER_MPU, RESOURCE_EXTI, 0);
-    IOConfigGPIO(gyro->busDev->irqPin, IOCFG_IN_FLOATING);
+    IOInit(IOGetByTag(IO_TAG(MPU_INT_EXTI)), OWNER_MPU, RESOURCE_EXTI, 0);
+    IOConfigGPIO(IOGetByTag(IO_TAG(MPU_INT_EXTI)), IOCFG_IN_FLOATING);
 
-    EXTIHandlerInit(&gyro->exti, gyroIntExtiHandler);
-    EXTIConfig(gyro->busDev->irqPin, &gyro->exti, NVIC_PRIO_GYRO_INT_EXTI, EXTI_Trigger_Rising);
-    EXTIEnable(gyro->busDev->irqPin, true);
+    EXTIHandlerInit((extiCallbackRec_t *)gyroDmaSpiStartRead, gyroIntExtiHandler);
+    EXTIConfig(IOGetByTag(IO_TAG(MPU_INT_EXTI)), (extiCallbackRec_t *)gyroDmaSpiStartRead, NVIC_PRIO_GYRO_INT_EXTI, EXTI_Trigger_Rising);
+    EXTIEnable(IOGetByTag(IO_TAG(MPU_INT_EXTI)), true);
 #endif
 #endif
 }

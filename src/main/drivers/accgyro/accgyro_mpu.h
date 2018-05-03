@@ -199,6 +199,6 @@ void mpuGyroSetIsrUpdate(struct gyroDev_s *gyro, sensorGyroUpdateFuncPtr updateF
 #ifdef USE_DMA_SPI_DEVICE
 static volatile int dmaSpiGyroDataReady;
 static volatile uint32_t imufCrcErrorCount;
-bool mpuGyroDmaSpiReadStart(struct gyroDev_s *gyro);
+bool mpuGyroDmaSpiReadStart(void);
 void mpuGyroDmaSpiReadFinish(struct gyroDev_s *gyro);
 #endif

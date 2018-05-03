@@ -48,6 +48,28 @@ volatile uint16_t imufCurrentVersion = IMUF_FIRMWARE_VERSION;
 volatile uint32_t isImufCalibrating = 0;
 volatile imuFrame_t imufQuat;
 
+static inline void gpio_write_pin(GPIO_TypeDef * GPIOx, uint16_t GPIO_Pin, uint32_t pinState)
+{
+    if (pinState != 0)
+    {
+        GPIOx->BSRRL = (uint32_t)GPIO_Pin;
+    }
+    else
+    {
+        GPIOx->BSRRH = (uint32_t)GPIO_Pin;
+    }
+}
+
+static inline void dmaSpiCsLo(void)
+{
+    gpio_write_pin(GPIOA, GPIO_Pin_4, 0);
+}
+
+static inline void dmaSpiCsHi(void)
+{
+    gpio_write_pin(GPIOA, GPIO_Pin_4, 1);
+}
+
 void crcConfig(void)
 {
     return;
@@ -71,9 +93,9 @@ inline void appendCrcToData(uint32_t* data, uint32_t size)
 static void resetImuf9001(void)
 {
     //reset IMU
-    IOLo( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)) );
+    dmaSpiCsLo();
     delay(500);
-    IOHi( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)) );
+    dmaSpiCsHi();
 
 }
 
@@ -88,7 +110,7 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
 
     imufCommand_t command;
     uint32_t attempt, crcCalc;
-    int failCount = 500;
+    int failCount = 500;    
 
     memset(reply, 0, sizeof(command));
 
@@ -108,7 +130,8 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
     while (failCount-- > 0)
     {
         delayMicroseconds(1000);
-        if( IORead(IOGetByTag(IO_TAG(MPU_INT_EXTI))) ) //IMU is ready to talk
+
+        if( GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_0) ) //IMU is ready to talk
         {
             failCount -= 100;
             imufSendReceiveSpiBlocking(gyro->busDev, (uint8_t *)&command, (uint8_t *)reply, sizeof(imufCommand_t));
@@ -189,37 +212,54 @@ uint8_t imuf9001SpiDetect(gyroDev_t *gyro)
     #else
         #error IMUF9001 is SPI only
     #endif
-    #ifdef IMUF9001_CS_PIN
-        gyro->busDev->busdev.spi.csnPin = gyro->busDev->busdev.spi.csnPin == IO_NONE ? IOGetByTag(IO_TAG(IMUF9001_CS_PIN)) : gyro->busDev->busdev.spi.csnPin;
-    #else
-       #error IMUF9001 must use a CS pin (IMUF9001_CS_PIN)
-    #endif
-    #ifdef IMUF9001_RST_PIN
-        gyro->busDev->busdev.spi.rstPin = IOGetByTag(IO_TAG(IMUF9001_RST_PIN));
-    #else
-        #error IMUF9001 must use a RST pin (IMUF9001_RST_PIN)
-    #endif
-    sensor = imuf9001SpiDetect(gyro);
-    // some targets using MPU_9250_SPI, ICM_20608_SPI or ICM_20602_SPI state sensor is MPU_65xx_SPI
-    if (sensor != GYRO_NONE) {
-        return true;
-    }
+    //#ifdef IMUF9001_CS_PIN
+    //    gyro->busDev->busdev.spi.csnPin = gyro->busDev->busdev.spi.csnPin == IO_NONE ? IOGetByTag(IO_TAG(IMUF9001_CS_PIN)) : gyro->busDev->busdev.spi.csnPin;
+    //#else
+    //   #error IMUF9001 must use a CS pin (IMUF9001_CS_PIN)
+    //#endif
+    //#ifdef IMUF9001_RST_PIN
+    //    gyro->busDev->busdev.spi.rstPin = IOGetByTag(IO_TAG(IMUF9001_RST_PIN));
+    //#else
+    //    #error IMUF9001 must use a RST pin (IMUF9001_RST_PIN)
+    //#endif
+    //sensor = imuf9001SpiDetect(gyro);
+    //// some targets using MPU_9250_SPI, ICM_20608_SPI or ICM_20602_SPI state sensor is MPU_65xx_SPI
+    //if (sensor != GYRO_NONE) {
+    //    return true;
+    //}
     #endif
 
     crcConfig();
     //config exti as input, not exti for now
-    IOInit(IOGetByTag( IO_TAG(MPU_INT_EXTI) ), OWNER_MPU, RESOURCE_EXTI, 0);
-    IOConfigGPIO(IOGetByTag( IO_TAG(MPU_INT_EXTI) ), IOCFG_IPD);
+    //IOInit(IOGetByTag( IO_TAG(MPU_INT_EXTI) ), OWNER_MPU, RESOURCE_EXTI, 0);
+    //IOConfigGPIO(IOGetByTag( IO_TAG(MPU_INT_EXTI) ), IOCFG_IPD);
+
+    GPIO_InitTypeDef gpioInitStruct;
+    //config pins
+    gpioInitStruct.GPIO_Pin   = GPIO_Pin_0;
+    gpioInitStruct.GPIO_Mode  = GPIO_Mode_IN;
+    gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    gpioInitStruct.GPIO_OType = GPIO_OType_PP;
+    gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_DOWN;
+    GPIO_Init(GPIOB, &gpioInitStruct);
+    //config pins
+    gpioInitStruct.GPIO_Pin   = GPIO_Pin_4;
+    gpioInitStruct.GPIO_Mode  = GPIO_Mode_OUT;
+    gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    gpioInitStruct.GPIO_OType = GPIO_OType_PP;
+    gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_NOPULL;
+    GPIO_Init(GPIOA, &gpioInitStruct);
+    dmaSpiCsHi();
 
     delayMicroseconds(100);
 
-    IOInit(gyro->busDev->busdev.spi.csnPin, OWNER_MPU, RESOURCE_SPI_CS, 0);
-    IOConfigGPIO(gyro->busDev->busdev.spi.csnPin, SPI_IO_CS_CFG);
-    IOHi(gyro->busDev->busdev.spi.csnPin);
+    //IOInit(gyro->busDev->busdev.spi.csnPin, OWNER_MPU, RESOURCE_SPI_CS, 0);
+    //IOConfigGPIO(gyro->busDev->busdev.spi.csnPin, SPI_IO_CS_CFG);
+    //IOHi(gyro->busDev->busdev.spi.csnPin);
 
-    IOInit( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)), OWNER_MPU, RESOURCE_SPI_CS, 0);
-    IOConfigGPIO( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)), SPI_IO_CS_CFG);
-    IOHi( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)));
+    //IOInit( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)), OWNER_MPU, RESOURCE_SPI_CS, 0);
+    //IOConfigGPIO( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)), SPI_IO_CS_CFG);
+    //IOHi( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)));
 
     hardwareInitialised = true;
 
@@ -313,8 +353,9 @@ bool imufSpiGyroDetect(gyroDev_t *gyro)
 {
     // MPU6500 is used as a equivalent of other gyros by some flight controllers
     gyro->initFn = imufSpiGyroInit;
-    gyro->readFn = mpuGyroDmaSpiReadStart;
+    gyro->readFn = NULL;
     gyro->scale = 1.0f;
+    imuf9001SpiDetect(gyro);
     return true;
 }
 

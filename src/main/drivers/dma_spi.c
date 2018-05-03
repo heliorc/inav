@@ -40,6 +40,9 @@ static inline void dmaSpiCsHi(void)
 
 void dmaSpicleanupspi(void)
 {
+    //make sure CS is hi
+    dmaSpiCsHi();
+
     //clear DMA flags
     DMA_ClearFlag(DMA_SPI_TX_DMA_STREAM, DMA_SPI_TX_DMA_FLAG_ALL);
     DMA_ClearFlag(DMA_SPI_RX_DMA_STREAM, DMA_SPI_RX_DMA_FLAG_ALL);
@@ -162,6 +165,13 @@ void dmaSpiInit(void)
 
 void dmaSpiTransmitReceive(uint8_t* txBuffer, uint8_t* rxBuffer, uint32_t size, uint32_t blockingRead)
 {
+    static int isInit = 0;
+
+    if(!isInit)
+    {
+        dmaSpiInit();
+        isInit=1;
+    }
     //set buffer size
     DMA_SetCurrDataCounter(DMA_SPI_TX_DMA_STREAM, size);
     DMA_SetCurrDataCounter(DMA_SPI_RX_DMA_STREAM, size);

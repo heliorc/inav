@@ -452,12 +452,13 @@ void gyroGetMeasuredRotationRate(fpVector3_t *measuredRotationRate)
 void gyroUpdate(timeDelta_t gyroUpdateDeltaUs)
 {
     #ifdef USE_DMA_SPI_DEVICE
-    if (!dmaSpiGyroDataReady) {
-        return;
-    }
+    //if (!dmaSpiGyroDataReady) {
+    //    return;
+    //}
     #endif
     #ifdef USE_GYRO_IMUF9001
-    if (isCalibrationComplete(&gyroCalibration)){
+    if (1){
+    //if (isCalibrationComplete(&gyroCalibration)){
         gyroADC[X] = (int32_t)gyro.gyroADCf[X];
         gyroADC[Y] = (int32_t)gyro.gyroADCf[Y];
         gyroADC[Z] = (int32_t)gyro.gyroADCf[Z];

@@ -65,6 +65,7 @@ bool spiBusTransfer(const busDevice_t * dev, const uint8_t *txData, uint8_t *rxD
 {
 
     #ifdef USE_DMA_SPI_DEVICE
+        (void)(dev);
         uint32_t timeoutCheck = millis();
         memcpy(dmaTxBuffer, (uint8_t *)txData, length);
         dmaSpiTransmitReceive(dmaTxBuffer, dmaRxBuffer, length, 1);
@@ -73,7 +74,6 @@ bool spiBusTransfer(const busDevice_t * dev, const uint8_t *txData, uint8_t *rxD
             if(millis() - timeoutCheck > GYRO_READ_TIMEOUT)
             {
                 //GYRO_READ_TIMEOUT ms max, read failed, cleanup spi and return 0
-                IOHi(dev->busdev.spi.csnPin);
                 dmaSpicleanupspi();
                 return false;
             }

@@ -55,14 +55,16 @@ STATIC_ASSERT(sizeof(mpuContextData_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_s
 #endif //USE_GYRO_IMUF9001
 
 #ifdef USE_DMA_SPI_DEVICE
-static volatile int dmaSpiGyroDataReady = 0;
+static volatile int dmaSpiGyroDataReady = 1;
 static volatile uint32_t imufCrcErrorCount = 0;
 #endif //USE_DMA_SPI_DEVICE
 
 #ifdef USE_GYRO_IMUF9001
+#ifdef USE_DMA_SPI_DEVICE
 imufCommand_t *dmaTxBufferImufCmdPtr = (imufCommand_t *)dmaTxBuffer;
 imufCommand_t *dmaRxBufferImufCmdPtr = (imufCommand_t *)dmaRxBuffer;
 imufData_t imufData;
+#endif
 #endif
 /*
  * Gyro interrupt service routine
@@ -163,9 +165,9 @@ bool mpuTemperatureReadScratchpad(gyroDev_t *gyro, int16_t * data)
 }
 
 #ifdef USE_DMA_SPI_DEVICE
-bool mpuGyroDmaSpiReadStart(gyroDev_t * gyro)
+bool mpuGyroDmaSpiReadStart(void)
 {
-    (void)(gyro); ///not used at this time
+    //(void)(gyro); ///not used at this time
     //no reason not to get acc and gyro data at the same time
     lastImufExtiTime = micros();
     #ifdef USE_GYRO_IMUF9001
@@ -204,7 +206,7 @@ void mpuGyroDmaSpiReadFinish(gyroDev_t * gyro)
     #ifdef USE_GYRO_IMUF9001
     volatile uint32_t crc1 = ( (*(uint32_t *)(dmaRxBuffer+gyroConfig()->imuf_mode-4)) & 0xFF );
     volatile uint32_t crc2 = ( getCrcImuf9001((uint32_t *)(dmaRxBuffer), (gyroConfig()->imuf_mode >> 2)-1) & 0xFF );
-    if(crc1 == crc2)
+    if(1 == 1)
     {
         memcpy(&imufData, dmaRxBuffer, sizeof(imufData_t));
         acc.accADCf[X]    = imufData.accX * acc.dev.acc_1G;
