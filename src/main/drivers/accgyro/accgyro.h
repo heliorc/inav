@@ -45,6 +45,7 @@ typedef struct gyroDev_s {
     sensorGyroInterruptStatusFuncPtr intStatusFn;
     sensorGyroUpdateFuncPtr updateFn;
     extiCallbackRec_t exti;
+    //float gyroADC[XYZ_AXIS_COUNT];                      // gyro data after calibration and alignment
     float scale;                                        // scalefactor
     int16_t gyroADCRaw[XYZ_AXIS_COUNT];
     int16_t gyroZero[XYZ_AXIS_COUNT];

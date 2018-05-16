@@ -104,4 +104,5 @@ void gyroDmaSpiStartRead(void);
 uint32_t lastImufExtiTime;
 bool gyroIsSane(void);
 uint16_t returnGyroAlignmentForImuf9001(void);
+void setGyroData(float x, float y, float z);
 #endif

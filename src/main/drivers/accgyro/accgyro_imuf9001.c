@@ -44,7 +44,7 @@
 #include "drivers/system.h"
 
 
-volatile uint16_t imufCurrentVersion = IMUF_FIRMWARE_VERSION;
+volatile uint16_t imufCurrentVersion = 0;
 volatile uint32_t isImufCalibrating = 0;
 volatile imuFrame_t imufQuat;
 
@@ -354,7 +354,7 @@ bool imufSpiGyroDetect(gyroDev_t *gyro)
     // MPU6500 is used as a equivalent of other gyros by some flight controllers
     gyro->initFn = imufSpiGyroInit;
     gyro->readFn = NULL;
-    gyro->scale = 1.0f;
+    gyro->scale  = 1.0f;
     imuf9001SpiDetect(gyro);
     return true;
 }

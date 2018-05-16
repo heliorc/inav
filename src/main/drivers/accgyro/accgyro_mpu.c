@@ -204,17 +204,17 @@ void mpuGyroDmaSpiReadFinish(gyroDev_t * gyro)
 {
     //spi rx dma callback
     #ifdef USE_GYRO_IMUF9001
+    (void)(gyro); // this is not useful to us since the IMU-f is not a gyro.
     volatile uint32_t crc1 = ( (*(uint32_t *)(dmaRxBuffer+gyroConfig()->imuf_mode-4)) & 0xFF );
     volatile uint32_t crc2 = ( getCrcImuf9001((uint32_t *)(dmaRxBuffer), (gyroConfig()->imuf_mode >> 2)-1) & 0xFF );
-    if(1 == 1)
+    if(crc1 == crc2)
     {
         memcpy(&imufData, dmaRxBuffer, sizeof(imufData_t));
         acc.accADCf[X]    = imufData.accX * acc.dev.acc_1G;
         acc.accADCf[Y]    = imufData.accY * acc.dev.acc_1G;
         acc.accADCf[Z]    = imufData.accZ * acc.dev.acc_1G;
-        gyro->gyroADCRaw[X] = imufData.gyroX;
-        gyro->gyroADCRaw[Y] = imufData.gyroY;
-        gyro->gyroADCRaw[Z] = imufData.gyroZ;
+        // gyroDev_t * gyro collides with the gyro struct, so we'll pass the data to a function in gyro.c
+        setGyroData(imufData.gyroX, imufData.gyroY, imufData.gyroZ);
         if (gyroConfig()->imuf_mode == GTBCM_GYRO_ACC_QUAT_FILTER_F) {
             imufQuat.w       = imufData.quaternionW;
             imufQuat.x       = imufData.quaternionX;
@@ -231,9 +231,9 @@ void mpuGyroDmaSpiReadFinish(gyroDev_t * gyro)
     acc.dev.ADCRaw[X]   = (int16_t)((dmaRxBuffer[1] << 8)  | dmaRxBuffer[2]);
     acc.dev.ADCRaw[Y]   = (int16_t)((dmaRxBuffer[3] << 8)  | dmaRxBuffer[4]);
     acc.dev.ADCRaw[Z]   = (int16_t)((dmaRxBuffer[5] << 8)  | dmaRxBuffer[6]);
-    gyro->gyroADCRaw[X] = (int16_t)((dmaRxBuffer[9] << 8)  | dmaRxBuffer[10]);
-    gyro->gyroADCRaw[Y] = (int16_t)((dmaRxBuffer[11] << 8) | dmaRxBuffer[12]);
-    gyro->gyroADCRaw[Z] = (int16_t)((dmaRxBuffer[13] << 8) | dmaRxBuffer[14]);
+    gyro.gyroADCf[X]    = (int16_t)((dmaRxBuffer[9] << 8)  | dmaRxBuffer[10]);
+    gyro.gyroADCf[Y]    = (int16_t)((dmaRxBuffer[11] << 8) | dmaRxBuffer[12]);
+    gyro.gyroADCf[Z]    = (int16_t)((dmaRxBuffer[13] << 8) | dmaRxBuffer[14]);
     #endif
     dmaSpiGyroDataReady = 1; //set flag to tell scheduler data is ready
 }
