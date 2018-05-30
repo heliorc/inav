@@ -173,17 +173,19 @@
 
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    4
-#define TARGET_MOTOR_COUNT      4
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
-#define TARGET_IO_PORTD         (BIT(2))
+#define TARGET_IO_PORTD         0xffff
 
-#define USABLE_TIMER_CHANNEL_COUNT 7
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(8) | TIM_N(4) | TIM_N(12) )
+#define USABLE_TIMER_CHANNEL_COUNT 5
+#define USED_TIMERS             ( TIM_N(1) | TIM_N(3) | TIM_N(8) | TIM_N(4) | TIM_N(12) )
+
 
 #define IMUF_BIT_I2C_IF_DIS              (1 << 4)
+
+#define SENSORS_SET (SENSOR_ACC)
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PA1

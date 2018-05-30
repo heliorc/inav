@@ -210,9 +210,12 @@ void mpuGyroDmaSpiReadFinish(gyroDev_t * gyro)
     if(crc1 == crc2)
     {
         memcpy(&imufData, dmaRxBuffer, sizeof(imufData_t));
-        acc.accADCf[X]    = imufData.accX * acc.dev.acc_1G;
-        acc.accADCf[Y]    = imufData.accY * acc.dev.acc_1G;
-        acc.accADCf[Z]    = imufData.accZ * acc.dev.acc_1G;
+        acc.accADCf[X]    = imufData.accX;
+        acc.accADCf[Y]    = imufData.accY;
+        acc.accADCf[Z]    = imufData.accZ;
+        acc.dev.ADCRaw[X] = (imufData.accX * acc.dev.acc_1G);
+        acc.dev.ADCRaw[Y] = (imufData.accY * acc.dev.acc_1G);
+        acc.dev.ADCRaw[Z] = (imufData.accZ * acc.dev.acc_1G);
         // gyroDev_t * gyro collides with the gyro struct, so we'll pass the data to a function in gyro.c
         setGyroData(imufData.gyroX, imufData.gyroY, imufData.gyroZ);
         if (gyroConfig()->imuf_mode == GTBCM_GYRO_ACC_QUAT_FILTER_F) {

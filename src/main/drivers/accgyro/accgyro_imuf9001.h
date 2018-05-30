@@ -213,5 +213,5 @@ typedef struct imufData
 extern volatile imuFrame_t imufQuat;
 volatile uint32_t isImufCalibrating;
 
-
+extern void resetImuf9001(void);
 extern uint32_t getCrcImuf9001(uint32_t* data, uint32_t size);

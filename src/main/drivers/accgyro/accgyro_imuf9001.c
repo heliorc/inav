@@ -90,12 +90,30 @@ inline void appendCrcToData(uint32_t* data, uint32_t size)
     data[size] = getCrcImuf9001(data, size);;
 }
 
-static void resetImuf9001(void)
+void resetImuf9001(void)
 {
-    //reset IMU
+    static int runOnce = 1;
+
+    if(runOnce)
+    {
+        runOnce = 0;
+        GPIO_InitTypeDef gpioInitStruct;
+        gpioInitStruct.GPIO_Pin   = GPIO_Pin_4;
+        gpioInitStruct.GPIO_Mode  = GPIO_Mode_OUT;
+        gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+        gpioInitStruct.GPIO_OType = GPIO_OType_OD;
+        gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_NOPULL;
+        GPIO_Init(GPIOA, &gpioInitStruct);
+
+        //reset IMU
+        dmaSpiCsLo();
+        delay(50);
+        dmaSpiCsHi();
+    }
     dmaSpiCsLo();
-    delay(500);
+    delay(250);
     dmaSpiCsHi();
+    delay(50);
 
 }
 
@@ -204,29 +222,13 @@ uint8_t imuf9001SpiDetect(gyroDev_t *gyro)
     if (hardwareInitialised) {
         return(0);
     }
-    uint8_t sensor = GYRO_NONE;
 
     #ifdef USE_GYRO_IMUF9001
-    #ifdef IMUF9001_SPI_INSTANCE
-        gyro->busDev = busDeviceInit(BUSTYPE_SPI, DEVHW_IMUF9001, gyro->imuSensorToUse, OWNER_MPU);
-    #else
-        #error IMUF9001 is SPI only
-    #endif
-    //#ifdef IMUF9001_CS_PIN
-    //    gyro->busDev->busdev.spi.csnPin = gyro->busDev->busdev.spi.csnPin == IO_NONE ? IOGetByTag(IO_TAG(IMUF9001_CS_PIN)) : gyro->busDev->busdev.spi.csnPin;
-    //#else
-    //   #error IMUF9001 must use a CS pin (IMUF9001_CS_PIN)
-    //#endif
-    //#ifdef IMUF9001_RST_PIN
-    //    gyro->busDev->busdev.spi.rstPin = IOGetByTag(IO_TAG(IMUF9001_RST_PIN));
-    //#else
-    //    #error IMUF9001 must use a RST pin (IMUF9001_RST_PIN)
-    //#endif
-    //sensor = imuf9001SpiDetect(gyro);
-    //// some targets using MPU_9250_SPI, ICM_20608_SPI or ICM_20602_SPI state sensor is MPU_65xx_SPI
-    //if (sensor != GYRO_NONE) {
-    //    return true;
-    //}
+        #ifdef IMUF9001_SPI_INSTANCE
+            gyro->busDev = busDeviceInit(BUSTYPE_SPI, DEVHW_IMUF9001, gyro->imuSensorToUse, OWNER_MPU);
+        #else
+            #error IMUF9001 is SPI only
+        #endif
     #endif
 
     crcConfig();
@@ -243,13 +245,6 @@ uint8_t imuf9001SpiDetect(gyroDev_t *gyro)
     gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_DOWN;
     GPIO_Init(GPIOB, &gpioInitStruct);
     //config pins
-    gpioInitStruct.GPIO_Pin   = GPIO_Pin_4;
-    gpioInitStruct.GPIO_Mode  = GPIO_Mode_OUT;
-    gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-    gpioInitStruct.GPIO_OType = GPIO_OType_PP;
-    gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_NOPULL;
-    GPIO_Init(GPIOA, &gpioInitStruct);
-    dmaSpiCsHi();
 
     delayMicroseconds(100);
 
@@ -266,10 +261,10 @@ uint8_t imuf9001SpiDetect(gyroDev_t *gyro)
     for (int x=0; x<10; x++)
     {
         int returnCheck;
-        if (x)
+        if (x>3)
         {
             resetImuf9001();
-            delay(300 * x);
+            delay(100 * x);
         }
         returnCheck = imuf9001Whoami(gyro);
         if(returnCheck)
@@ -320,11 +315,11 @@ void imufSpiGyroInit(gyroDev_t *gyro)
 
     for (attempt = 0; attempt < 10; attempt++)
     {
-        if(attempt)
-        {
-            resetImuf9001();
-            delay(300 * attempt);
-        }
+        //if(attempt)
+        //{
+        //    resetImuf9001();
+        //    delay(300 * attempt);
+        //}
 
         if (imuf9001SendReceiveCommand(gyro, IMUF_COMMAND_SETUP, &txData, &rxData))
         {

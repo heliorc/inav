@@ -26,15 +26,15 @@
 
 typedef enum {
     GYRO_NONE = 0,
-    GYRO_AUTODETECT,
-    GYRO_MPU6050,
-    GYRO_L3G4200D,
-    GYRO_MPU3050,
-    GYRO_L3GD20,
-    GYRO_MPU6000,
-    GYRO_MPU6500,
-    GYRO_MPU9250,
-    GYRO_IMUF9001 = 42,
+    GYRO_AUTODETECT = 1,
+    GYRO_MPU6050 = 2,
+    GYRO_L3G4200D = 3,
+    GYRO_MPU3050 = 4,
+    GYRO_L3GD20 = 5,
+    GYRO_MPU6000 = 6,
+    GYRO_MPU6500 = 7,
+    GYRO_MPU9250 = 8,
+    GYRO_IMUF9001 = 9,
     GYRO_FAKE,    
 } gyroSensor_e;
 

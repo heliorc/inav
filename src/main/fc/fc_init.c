@@ -80,6 +80,7 @@
 #include "fc/cli.h"
 
 #ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
 #include "drivers/dma_spi.h"
 #endif //USE_GYRO_IMUF9001
 
@@ -188,6 +189,11 @@ void init(void)
     // Initialize system and CPU clocks to their initial values
     systemInit();
 
+#ifdef USE_GYRO_IMUF9001
+    resetImuf9001();
+#endif
+
+    //volatile int menuPoo = TARGET_IO_PORTx;
     // initialize IO (needed for all IO operations)
     IOInitGlobal();
 

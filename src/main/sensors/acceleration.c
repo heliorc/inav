@@ -260,6 +260,10 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
             accHardware = ACC_IMUF9001;
             break;
         }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
         FALLTHROUGH;
 #endif
 
@@ -288,7 +292,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         return false;
     }
 
-    detectedSensors[SENSOR_INDEX_ACC] = accHardware;
+    detectedSensors[SENSOR_INDEX_ACC]= accHardware;
     sensorsSet(SENSOR_ACC);
     return true;
 }
