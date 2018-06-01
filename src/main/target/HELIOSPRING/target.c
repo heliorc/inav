@@ -22,18 +22,6 @@
 #include "drivers/bus.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
-//#include "drivers/dma.h"
-
-//BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,     DEVHW_IMUF9001,     IMUF9001_SPI_INSTANCE,    IMUF9001_CS_PIN,     MPU_INT_EXTI,       0,  DEVFLAGS_NONE);
-
-//BUSDEV_REGISTER_I2C(    busdev_ms5611,      DEVHW_MS5611,       BARO_I2C_BUS,       0x77,               NONE,                       DEVFLAGS_USE_RAW_REGISTERS);
-
-//BUSDEV_REGISTER_I2C_TAG(busdev_hmc5883_int, DEVHW_HMC5883,      MAG_I2C_BUS_INT,    0x1E,               NONE,                   0,  DEVFLAGS_NONE);
-
-//BUSDEV_REGISTER_I2C_TAG(busdev_hmc5883,     DEVHW_HMC5883,      MAG_I2C_BUS_EXT,    0x1E,               NONE,                   1,  DEVFLAGS_NONE);
-//BUSDEV_REGISTER_I2C_TAG(busdev_qmc5883,     DEVHW_QMC5883,      MAG_I2C_BUS_EXT,    0x0D,               NONE,                   1,  DEVFLAGS_NONE);
-//BUSDEV_REGISTER_I2C_TAG(busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS_EXT,    0x0E,               NONE,                   1,  DEVFLAGS_NONE);
-
 
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
    

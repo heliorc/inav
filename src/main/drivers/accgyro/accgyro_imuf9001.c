@@ -60,12 +60,12 @@ static inline void gpio_write_pin(GPIO_TypeDef * GPIOx, uint16_t GPIO_Pin, uint3
     }
 }
 
-static inline void dmaSpiCsLo(void)
+static inline void imufSpiCsLo(void)
 {
     gpio_write_pin(GPIOA, GPIO_Pin_4, 0);
 }
 
-static inline void dmaSpiCsHi(void)
+static inline void imufSpiCsHi(void)
 {
     gpio_write_pin(GPIOA, GPIO_Pin_4, 1);
 }
@@ -104,16 +104,12 @@ void resetImuf9001(void)
         gpioInitStruct.GPIO_OType = GPIO_OType_OD;
         gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_NOPULL;
         GPIO_Init(GPIOA, &gpioInitStruct);
-
-        //reset IMU
-        dmaSpiCsLo();
-        delay(50);
-        dmaSpiCsHi();
     }
-    dmaSpiCsLo();
-    delay(250);
-    dmaSpiCsHi();
-    delay(50);
+
+    imufSpiCsLo();
+    delay(400);
+    imufSpiCsHi();
+    delay(100);
 
 }
 

@@ -20,10 +20,33 @@
 #define TARGET_BOARD_IDENTIFIER "HESP"
 #define USBD_PRODUCT_STRING     "HELIOSPRING"
 
-#define LED0_PIN                PA8
+// Use target-specific hardware descriptors (don't use common_hardware.c)
+
+#define LED0                    PB7
 
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
+
+#define USE_I2C
+#define USE_I2C_DEVICE_2
+#define I2C_DEVICE_2_SHARES_UART3
+
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C2
+#define MAG_HMC5883_ALIGN       CW90_DEG
+#define USE_MAG_HMC5883
+#define USE_MAG_MAG3110
+#define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+
+#define USE_BARO
+#define BARO_I2C_BUS             BUS_I2C2
+#define USE_BARO_BMP085
+#define USE_BARO_BMP280
+#define USE_BARO_MS5611
+
+#define USE_PITOT_MS4525
+#define PITOT_I2C_BUS            BUS_I2C2
 
 #define USE_GYRO
 #define USE_ACC
@@ -57,7 +80,7 @@
 #define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
-#define MAX7456_CS_PIN      PA15
+#define MAX7456_CS_PIN          PA15
 #define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD) // 10MHz
 #define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
 #define M25P16_SPI_BUS          BUS_SPI3
@@ -139,23 +162,17 @@
 #define DMA_SPI_RX_DMA_FLAG_GL       DMA_FLAG_TCIF2
 
 
-#define USE_SPI_DEVICE_2
-#define SPI2_NSS_PIN            PB12
-#define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN           PC2
-#define SPI2_MOSI_PIN           PC3
+//#define USE_SPI_DEVICE_2
+//#define SPI2_NSS_PIN            PB12
+//#define SPI2_SCK_PIN            PB13
+//#define SPI2_MISO_PIN           PC2
+//#define SPI2_MOSI_PIN           PC3
 
 #define USE_SPI_DEVICE_3
 #define SPI3_NSS_PIN            PA15
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN           PB4
 #define SPI3_MOSI_PIN           PB5
-
-#define USE_I2C
-#define USE_I2C_DEVICE_2
-#define I2C2_SCL                NONE // PB10, UART3_TX
-#define I2C2_SDA                NONE // PB11, UART3_RX
-#define I2C_DEVICE              (I2CDEV_2)
 
 #define USE_TARGET_CONFIG
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
@@ -166,7 +183,6 @@
 #define DEFAULT_FEATURES        (FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_AIRMODE)
 
 #define USE_GPS
-#define USE_MAG
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_PIN  NONE  // (HARDARE=0,PPM)
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
@@ -183,9 +199,7 @@
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(3) | TIM_N(8) | TIM_N(4) | TIM_N(12) )
 
 
-#define IMUF_BIT_I2C_IF_DIS              (1 << 4)
-
-#define SENSORS_SET (SENSOR_ACC)
+#define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PA1

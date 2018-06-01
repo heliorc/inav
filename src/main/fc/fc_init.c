@@ -190,7 +190,9 @@ void init(void)
     systemInit();
 
 #ifdef USE_GYRO_IMUF9001
-    resetImuf9001();
+    if (isMPUSoftReset()) {
+        resetImuf9001();
+    }
 #endif
 
     //volatile int menuPoo = TARGET_IO_PORTx;
