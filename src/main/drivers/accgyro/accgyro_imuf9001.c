@@ -260,7 +260,7 @@ uint8_t imuf9001SpiDetect(gyroDev_t *gyro)
         if (x>3)
         {
             resetImuf9001();
-            delay(100 * x);
+            delay(200 * x);
         }
         returnCheck = imuf9001Whoami(gyro);
         if(returnCheck)

@@ -45,6 +45,7 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 
+#define USE_PITOT_ADC
 #define USE_PITOT_MS4525
 #define PITOT_I2C_BUS            BUS_I2C2
 
@@ -188,15 +189,16 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 // Number of available PWM outputs
-#define MAX_PWM_OUTPUT_PORTS    4
+#define MAX_PWM_OUTPUT_PORTS    3
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 
-#define USABLE_TIMER_CHANNEL_COUNT 5
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(3) | TIM_N(8) | TIM_N(4) | TIM_N(12) )
+#define USABLE_TIMER_CHANNEL_COUNT 3
+//#define USED_TIMERS             ( TIM_N(1) | TIM_N(3) | TIM_N(8) | TIM_N(4) | TIM_N(12) )
+#define USED_TIMERS             ( TIM_N(3) | TIM_N(8) )
 
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
@@ -204,7 +206,7 @@
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PA1
 #define ADC_CHANNEL_2_PIN               PA0
-#define ADC_CHANNEL_3_PIN               PC2
+#define ADC_CHANNEL_3_PIN               PA5
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3

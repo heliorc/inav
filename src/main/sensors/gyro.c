@@ -551,6 +551,16 @@ int16_t gyroRateDps(int axis)
 
 bool gyroSyncCheckUpdate(void)
 {
+    #ifdef USE_GYRO_IMUF9001
+    if (!dmaSpiGyroDataReady) {
+        return false;
+    }
+    else
+    {
+        dmaSpiGyroDataReady = 0;
+        return true;
+    }
+    #endif
     if (!gyroDev0.intStatusFn)
         return false;
 
