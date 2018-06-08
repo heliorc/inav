@@ -106,7 +106,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 2);
 
 #ifdef USE_GYRO_IMUF9001
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
-    .gyro_lpf = GYRO_LPF_NONE,
+    .gyro_lpf = GYRO_LPF_256HZ,
     .gyro_soft_lpf_hz = 90,
     .gyro_align = ALIGN_DEFAULT,
     .gyroMovementCalibrationThreshold = 32,

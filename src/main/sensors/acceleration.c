@@ -517,6 +517,7 @@ void accGetMeasuredAcceleration(fpVector3_t *measuredAcc)
 
 void accUpdate(void)
 {
+
     if (!acc.dev.readFn(&acc.dev)) {
         return;
     }
@@ -534,11 +535,11 @@ void accUpdate(void)
     #ifndef USE_ACC_IMUF9001
     applySensorAlignment(accADC, accADC, acc.dev.accAlign);
     applyBoardAlignment(accADC);
+    #endif //USE_ACC_IMUF9001
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         acc.accADCf[axis] = (float)accADC[axis] / acc.dev.acc_1G;
     }
-    #endif //USE_ACC_IMUF9001
 
     if (accelerometerConfig()->acc_lpf_hz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {

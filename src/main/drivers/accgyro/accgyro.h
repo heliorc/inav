@@ -29,7 +29,6 @@
 #define GYRO_LPF_20HZ       4
 #define GYRO_LPF_10HZ       5
 #define GYRO_LPF_5HZ        6
-#define GYRO_LPF_NONE       7
 
 typedef struct {
     uint8_t gyroLpf;

@@ -107,7 +107,7 @@ void resetImuf9001(void)
     }
 
     imufSpiCsLo();
-    delay(400);
+    delay(500);
     imufSpiCsHi();
     delay(100);
 
@@ -273,7 +273,8 @@ uint8_t imuf9001SpiDetect(gyroDev_t *gyro)
 
 void imufSpiAccInit(accDev_t *acc)
 {
-    acc->acc_1G = 512 * 4;
+    //acc->acc_1G = 512 * 4;
+    acc->acc_1G = 512 * 8;
 }
 
 static gyroToBoardCommMode_t VerifyAllowedCommMode(uint32_t commMode)
