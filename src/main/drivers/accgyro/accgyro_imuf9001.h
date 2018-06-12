@@ -80,6 +80,13 @@ typedef struct imufCommand {
 
 typedef enum gyroCommands
 {
+    BL_ERASE_ALL                 = 22,
+    BL_REPORT_INFO               = 24,
+    BL_WRITE_FIRMWARE            = 28,
+    BL_WRITE_FIRMWARES           = 29,
+    BL_PREPARE_PROGRAM           = 30,
+    BL_END_PROGRAM               = 31,
+    BL_LISTENING                 = 32,
     IMUF_COMMAND_NONE            = 0,
     IMUF_COMMAND_CALIBRATE       = 99,
     IMUF_COMMAND_LISTENING       = 108,
@@ -210,6 +217,7 @@ typedef struct imufData
     uint32_t tail;
 } __attribute__((__packed__)) imufData_t;
 
+int updateImuf(const gyroDev_t *gyro);
 extern volatile imuFrame_t imufQuat;
 volatile uint32_t isImufCalibrating;
 

@@ -65,6 +65,10 @@
 #define USE_EXTI
 #define MPU_INT_EXTI            PB0
 #define USE_MPU_DATA_READY_SIGNAL
+#define IMUF_RST_PIN             GPIO_Pin_4
+#define IMUF_RST_PORT            GPIOA
+#define IMUF_EXTI_PIN            GPIO_Pin_0
+#define IMUF_EXTI_PORT           GPIOB
 
 #define USE_DSHOT_DMAR
 #define ENABLE_DSHOT_DMAR       true

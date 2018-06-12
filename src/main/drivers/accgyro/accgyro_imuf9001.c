@@ -23,10 +23,13 @@
 
 #include "platform.h"
 
+#include "build/debug.h"
+
 #include "sensors/gyro.h"
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_imuf9001.h"
+#include "drivers/light_led.h"
 
 #include "common/axis.h"
 #include "common/maths.h"
@@ -43,10 +46,21 @@
 
 #include "drivers/system.h"
 
+#include "target/imuf/imufbin.c" //imuf bin definition for updating
 
 volatile uint16_t imufCurrentVersion = 0;
 volatile uint32_t isImufCalibrating = 0;
 volatile imuFrame_t imufQuat;
+
+static void resetBlink()
+{
+    for(uint32_t x = 0; x<40; x++)
+    {
+        LED0_TOGGLE;
+        delay(20);
+    }
+    LED0_OFF;
+}
 
 static inline void gpio_write_pin(GPIO_TypeDef * GPIOx, uint16_t GPIO_Pin, uint32_t pinState)
 {
@@ -60,14 +74,56 @@ static inline void gpio_write_pin(GPIO_TypeDef * GPIOx, uint16_t GPIO_Pin, uint3
     }
 }
 
-static inline void imufSpiCsLo(void)
+static inline void imufRstLo(void)
 {
-    gpio_write_pin(GPIOA, GPIO_Pin_4, 0);
+    gpio_write_pin(IMUF_RST_PORT, IMUF_RST_PIN, 0);
 }
 
-static inline void imufSpiCsHi(void)
+static inline void imufRstHi(void)
 {
-    gpio_write_pin(GPIOA, GPIO_Pin_4, 1);
+    gpio_write_pin(IMUF_RST_PORT, IMUF_RST_PIN, 1);
+}
+
+static void imufEXTIHi(void)
+{
+    gpio_write_pin(IMUF_EXTI_PORT, IMUF_EXTI_PIN, 1);
+}
+
+static void imufEXTILo(void)
+{
+    gpio_write_pin(IMUF_EXTI_PORT, IMUF_EXTI_PIN, 0);
+}
+
+void configExtiAsInput(void)
+{
+    //config exti as input, not exti for now
+    GPIO_InitTypeDef gpioInitStruct;
+    //config pins
+    gpioInitStruct.GPIO_Pin   = IMUF_EXTI_PIN;
+    gpioInitStruct.GPIO_Mode  = GPIO_Mode_IN;
+    gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    gpioInitStruct.GPIO_OType = GPIO_OType_PP;
+    gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_DOWN;
+    GPIO_Init(IMUF_EXTI_PORT, &gpioInitStruct);
+    //config pins
+
+    delayMicroseconds(100);
+}
+
+void configExtiAsOutput(void)
+{
+    //config exti as input, not exti for now
+    GPIO_InitTypeDef gpioInitStruct;
+    //config pins
+    gpioInitStruct.GPIO_Pin   = IMUF_EXTI_PIN;
+    gpioInitStruct.GPIO_Mode  = GPIO_Mode_OUT;
+    gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    gpioInitStruct.GPIO_OType = GPIO_OType_PP;
+    gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_NOPULL;
+    GPIO_Init(IMUF_EXTI_PORT, &gpioInitStruct);
+    //config pins
+
+    delayMicroseconds(100);
 }
 
 void crcConfig(void)
@@ -98,17 +154,17 @@ void resetImuf9001(void)
     {
         runOnce = 0;
         GPIO_InitTypeDef gpioInitStruct;
-        gpioInitStruct.GPIO_Pin   = GPIO_Pin_4;
+        gpioInitStruct.GPIO_Pin   = IMUF_RST_PIN;
         gpioInitStruct.GPIO_Mode  = GPIO_Mode_OUT;
         gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
         gpioInitStruct.GPIO_OType = GPIO_OType_OD;
         gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_NOPULL;
-        GPIO_Init(GPIOA, &gpioInitStruct);
+        GPIO_Init(IMUF_RST_PORT, &gpioInitStruct);
     }
 
-    imufSpiCsLo();
-    delay(500);
-    imufSpiCsHi();
+    imufRstLo();
+    resetBlink();
+    imufRstHi();
     delay(100);
 
 }
@@ -138,6 +194,22 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
     }
 
     command.command = commandToSend;
+
+    if(commandToSend == BL_WRITE_FIRMWARES)
+    {
+        command.param1  = data->param1;
+        command.param2  = data->param2;
+        command.param3  = data->param3;
+        command.param4  = data->param4;
+        command.param5  = data->param5;
+        command.param6  = data->param6;
+        command.param7  = data->param7;
+        command.param8  = data->param8;
+        command.param9  = data->param9;
+        command.param10 = data->param10;
+    }
+    
+    command.command = commandToSend;
     command.crc     = getCrcImuf9001((uint32_t *)&command, 11);;
 
 
@@ -145,14 +217,14 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
     {
         delayMicroseconds(1000);
 
-        if( GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_0) ) //IMU is ready to talk
+        if( GPIO_ReadInputDataBit(IMUF_EXTI_PORT, IMUF_EXTI_PIN) ) //IMU is ready to talk
         {
             failCount -= 100;
             imufSendReceiveSpiBlocking(gyro->busDev, (uint8_t *)&command, (uint8_t *)reply, sizeof(imufCommand_t));
 
             crcCalc = getCrcImuf9001((uint32_t *)reply, 11);
             //this is the only valid reply we'll get if we're in BL mode
-            if(crcCalc == reply->crc && reply->command == IMUF_COMMAND_LISTENING ) //this tells us the IMU was listening for a command, else we need to reset synbc
+            if(crcCalc == reply->crc && (reply->command == IMUF_COMMAND_LISTENING || reply->command == BL_LISTENING)) //this tells us the IMU was listening for a command, else we need to reset synbc
             {
                 for (attempt = 0; attempt < 100; attempt++)
                 {
@@ -160,9 +232,13 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
                     command.command = IMUF_COMMAND_NONE;
                     command.crc     = getCrcImuf9001((uint32_t *)&command, 11);
 
+                    if(commandToSend == BL_ERASE_ALL)
+                    {
+                        delay(500);
+                    }
                     delayMicroseconds(100); //give pin time to set
 
-                    if( IORead(IOGetByTag(IO_TAG(MPU_INT_EXTI))) ) //IMU is ready to talk
+                    if( GPIO_ReadInputDataBit(IMUF_EXTI_PORT, IMUF_EXTI_PIN) ) //IMU is ready to talk
                     {
                         //reset attempts
                         attempt = 100;
@@ -182,29 +258,128 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
     return 0;
 }
 
-static int updateImuf(void)
+static int UpgradeBootloader(const gyroDev_t *gyro, uint32_t sizeOfBin)
 {
+    imufCommand_t reply;
+    imufCommand_t data;
+    #define START_LOCATION 0x08002000
+
+    volatile uint32_t startLocation = (uint32_t)((uint32_t*)(imuf_bin));
+    memset(&data, 0, sizeof(data));
+    //erase firmware on MCU
+    if( imuf9001SendReceiveCommand(gyro, BL_ERASE_ALL, &reply, &data) )
+    {
+        //good data
+        if( imuf9001SendReceiveCommand(gyro, BL_PREPARE_PROGRAM, &reply, &data) )
+        {
+            for(uint32_t x=0;x<(sizeOfBin);x+=32)
+            {
+                data.param1 = START_LOCATION+x;
+
+                data.param2 = (*(__IO uint32_t *)(startLocation+x));
+                data.param3 = (*(__IO uint32_t *)(startLocation+x+4));
+                data.param4 = (*(__IO uint32_t *)(startLocation+x+8));
+                data.param5 = (*(__IO uint32_t *)(startLocation+x+12));
+                data.param6 = (*(__IO uint32_t *)(startLocation+x+16));
+                data.param7 = (*(__IO uint32_t *)(startLocation+x+20));
+                data.param8 = (*(__IO uint32_t *)(startLocation+x+24));
+                data.param9 = (*(__IO uint32_t *)(startLocation+x+28));
+
+                if( imuf9001SendReceiveCommand(gyro, BL_WRITE_FIRMWARES, &reply, &data) )
+                {
+                    //continue writing
+                    LED0_TOGGLE;
+                }
+                else
+                {
+                    //error handler
+                    for(uint32_t x = 0; x<40; x++)
+                    {
+                        LED0_TOGGLE;
+                        delay(200);
+                    }
+                    LED0_OFF;
+                    return 0;
+                }
+            }
+
+            if( imuf9001SendReceiveCommand(gyro, BL_END_PROGRAM, &reply, &data) )
+            {
+                return 1;
+            }
+
+        }
+    }
+
+    return 0;
+
+}
+
+int updateImuf(const gyroDev_t *gyro)
+{
+
+    imufCommand_t reply;
+    imufCommand_t data;
+
+    //blink
+    resetBlink();
+
+    //config BL pin as output (shared with EXTI, this happens before EXTI init though)
+    configExtiAsOutput();
+
+    imufEXTIHi();    //set bl pin Hi
+    resetImuf9001(); //reset imuf, make three blinks
+    resetImuf9001(); //reset imuf, make three blinks
+    resetImuf9001(); //reset imuf, make three blinks
+    delay(100);      //delay 100 ms. give IMUF BL time to look for bl init pin
+    imufEXTILo();    //set bl pin Lo
+
+    //config EXTI as input so we can check imuf status
+    configExtiAsInput();
+
+    //check if BL is active
+    memset(&data, 0, sizeof(data));
+
+    if (imuf9001SendReceiveCommand(gyro, BL_REPORT_INFO, &reply, &data))
+    {
+        //good data
+        if (UpgradeBootloader(gyro, imuf_bin_len))
+        {
+            //reboot
+            //systemReset();
+            return 1;
+        }
+    }
     return 0;
 }
 
 int imuf9001Whoami(const gyroDev_t *gyro)
 {
     uint32_t attempt;
+    uint32_t up_attempt = 0;
     imufCommand_t reply;
 
-    for (attempt = 0; attempt < 10; attempt++)
+    for (attempt = 0; attempt < 5; attempt++)
     {
         if (imuf9001SendReceiveCommand(gyro, IMUF_COMMAND_REPORT_INFO, &reply, NULL))
         {
             imufCurrentVersion = (*(imufVersion_t *)&(reply.param1)).firmware;
-            if (imufCurrentVersion < IMUF_FIRMWARE_VERSION) {
+            if (imufCurrentVersion < imuf_bin_ver) {
                 //force update
-                if (!updateImuf())
+                while(1)
                 {
-                    return 0;
+                    if (updateImuf(gyro))
+                    {
+                        return imuf_bin_ver;
+                    }
+
+                    if(up_attempt++ > 10)
+                    {
+                        return 0;
+                    }
                 }
             } else {
-                return IMUF_FIRMWARE_VERSION;
+                return imuf_bin_ver;
             }
         }
     }
@@ -228,39 +403,21 @@ uint8_t imuf9001SpiDetect(gyroDev_t *gyro)
     #endif
 
     crcConfig();
-    //config exti as input, not exti for now
-    //IOInit(IOGetByTag( IO_TAG(MPU_INT_EXTI) ), OWNER_MPU, RESOURCE_EXTI, 0);
-    //IOConfigGPIO(IOGetByTag( IO_TAG(MPU_INT_EXTI) ), IOCFG_IPD);
-
-    GPIO_InitTypeDef gpioInitStruct;
-    //config pins
-    gpioInitStruct.GPIO_Pin   = GPIO_Pin_0;
-    gpioInitStruct.GPIO_Mode  = GPIO_Mode_IN;
-    gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-    gpioInitStruct.GPIO_OType = GPIO_OType_PP;
-    gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_DOWN;
-    GPIO_Init(GPIOB, &gpioInitStruct);
-    //config pins
-
-    delayMicroseconds(100);
-
-    //IOInit(gyro->busDev->busdev.spi.csnPin, OWNER_MPU, RESOURCE_SPI_CS, 0);
-    //IOConfigGPIO(gyro->busDev->busdev.spi.csnPin, SPI_IO_CS_CFG);
-    //IOHi(gyro->busDev->busdev.spi.csnPin);
-
-    //IOInit( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)), OWNER_MPU, RESOURCE_SPI_CS, 0);
-    //IOConfigGPIO( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)), SPI_IO_CS_CFG);
-    //IOHi( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)));
+    configExtiAsInput();
 
     hardwareInitialised = true;
 
-    for (int x=0; x<10; x++)
+    for (int x=0; x<6; x++)
     {
         int returnCheck;
         if (x>3)
         {
             resetImuf9001();
-            delay(200 * x);
+            resetImuf9001();
+        }
+        if(x > 4)
+        {
+            updateImuf(gyro);
         }
         returnCheck = imuf9001Whoami(gyro);
         if(returnCheck)

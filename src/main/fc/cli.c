@@ -68,6 +68,9 @@ extern uint8_t __config_end;
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/timer.h"
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#endif
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -1979,6 +1982,18 @@ static void cliEleresBind(char *cmdline)
 }
 #endif // USE_RX_ELERES
 
+#ifdef USE_GYRO_IMUF9001
+static void cliImufUpdate(char *cmdline)
+{
+    UNUSED(cmdline);
+    cliPrint("I muff, you muff, we all muff for IMU-F!");
+    cliPrintLinefeed();
+    delay(1000);
+    updateImuf(NULL);
+    cliReboot();
+}
+#endif
+
 static void cliExit(char *cmdline)
 {
     UNUSED(cmdline);
@@ -2481,6 +2496,9 @@ static void cliVersion(char *cmdline)
         buildTime,
         shortGitRevision
     );
+#ifdef USE_GYRO_IMUF9001
+    cliPrintLinef("# IMU-F Version: %lu", imufCurrentVersion);
+#endif
 }
 
 #if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
@@ -2722,6 +2740,9 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_RX_ELERES
     CLI_COMMAND_DEF("eleres_bind", NULL, NULL, cliEleresBind),
 #endif // USE_RX_ELERES
+#ifdef USE_GYRO_IMUF9001
+    CLI_COMMAND_DEF("imufupdate", "update imu-f's firmware", NULL, cliImufUpdate),
+#endif
     CLI_COMMAND_DEF("exit", NULL, NULL, cliExit),
     CLI_COMMAND_DEF("feature", "configure features",
         "list\r\n"
