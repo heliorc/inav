@@ -102,6 +102,7 @@ void gyroDmaSpiStartRead(void);
 #endif
 #ifdef USE_GYRO_IMUF9001
 uint32_t lastImufExtiTime;
+uint32_t getSetpointRateInt(int axis);
 bool gyroIsSane(void);
 uint16_t returnGyroAlignmentForImuf9001(void);
 void setGyroData(float x, float y, float z);

@@ -52,6 +52,7 @@ STATIC_ASSERT(sizeof(mpuContextData_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_s
 #endif //USE_DMA_SPI_DEVICE
 #ifdef USE_GYRO_IMUF9001
 #include "drivers/accgyro/accgyro_imuf9001.h"
+#include "flight/pid.h"
 #endif //USE_GYRO_IMUF9001
 
 #ifdef USE_DMA_SPI_DEVICE
@@ -189,6 +190,15 @@ bool mpuGyroDmaSpiReadStart(void)
         dmaTxBufferImufCmdPtr->command = 0;
         dmaTxBufferImufCmdPtr->crc     = 0; //typecast the dmaTxBuffer as a uint32_t array which is what the crc command needs
         imufEndCalibration();
+    }
+    else
+    {
+        //send setpoint and arm status
+        dmaTxBufferImufCmdPtr->command = IMUF_COMMAND_SETPOINT;
+        dmaTxBufferImufCmdPtr->param1  = getSetpointRateInt(0);
+        dmaTxBufferImufCmdPtr->param2  = getSetpointRateInt(1);
+        dmaTxBufferImufCmdPtr->param3  = getSetpointRateInt(2);
+        dmaTxBufferImufCmdPtr->crc     = getCrcImuf9001((uint32_t *)dmaTxBuffer, 11); //typecast the dmaTxBuffer as a uint32_t array which is what the crc command needs
     }
     memset(dmaRxBuffer, 0, gyroConfig()->imuf_mode); //clear buffer
     //send and receive data using SPI and DMA

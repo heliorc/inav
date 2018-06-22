@@ -46,8 +46,6 @@
 
 #include "drivers/system.h"
 
-#include "target/imuf/imufbin.c" //imuf bin definition for updating
-
 volatile uint16_t imufCurrentVersion = 0;
 volatile uint32_t isImufCalibrating = 0;
 volatile imuFrame_t imufQuat;
@@ -84,16 +82,6 @@ static inline void imufRstHi(void)
     gpio_write_pin(IMUF_RST_PORT, IMUF_RST_PIN, 1);
 }
 
-static void imufEXTIHi(void)
-{
-    gpio_write_pin(IMUF_EXTI_PORT, IMUF_EXTI_PIN, 1);
-}
-
-static void imufEXTILo(void)
-{
-    gpio_write_pin(IMUF_EXTI_PORT, IMUF_EXTI_PIN, 0);
-}
-
 void configExtiAsInput(void)
 {
     //config exti as input, not exti for now
@@ -104,22 +92,6 @@ void configExtiAsInput(void)
     gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
     gpioInitStruct.GPIO_OType = GPIO_OType_PP;
     gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_DOWN;
-    GPIO_Init(IMUF_EXTI_PORT, &gpioInitStruct);
-    //config pins
-
-    delayMicroseconds(100);
-}
-
-void configExtiAsOutput(void)
-{
-    //config exti as input, not exti for now
-    GPIO_InitTypeDef gpioInitStruct;
-    //config pins
-    gpioInitStruct.GPIO_Pin   = IMUF_EXTI_PIN;
-    gpioInitStruct.GPIO_Mode  = GPIO_Mode_OUT;
-    gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-    gpioInitStruct.GPIO_OType = GPIO_OType_PP;
-    gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_NOPULL;
     GPIO_Init(IMUF_EXTI_PORT, &gpioInitStruct);
     //config pins
 
@@ -194,22 +166,6 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
     }
 
     command.command = commandToSend;
-
-    if(commandToSend == BL_WRITE_FIRMWARES)
-    {
-        command.param1  = data->param1;
-        command.param2  = data->param2;
-        command.param3  = data->param3;
-        command.param4  = data->param4;
-        command.param5  = data->param5;
-        command.param6  = data->param6;
-        command.param7  = data->param7;
-        command.param8  = data->param8;
-        command.param9  = data->param9;
-        command.param10 = data->param10;
-    }
-    
-    command.command = commandToSend;
     command.crc     = getCrcImuf9001((uint32_t *)&command, 11);;
 
 
@@ -224,7 +180,7 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
 
             crcCalc = getCrcImuf9001((uint32_t *)reply, 11);
             //this is the only valid reply we'll get if we're in BL mode
-            if(crcCalc == reply->crc && (reply->command == IMUF_COMMAND_LISTENING || reply->command == BL_LISTENING)) //this tells us the IMU was listening for a command, else we need to reset synbc
+            if(crcCalc == reply->crc && (reply->command == IMUF_COMMAND_LISTENING)) //this tells us the IMU was listening for a command, else we need to reset synbc
             {
                 for (attempt = 0; attempt < 100; attempt++)
                 {
@@ -232,10 +188,6 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
                     command.command = IMUF_COMMAND_NONE;
                     command.crc     = getCrcImuf9001((uint32_t *)&command, 11);
 
-                    if(commandToSend == BL_ERASE_ALL)
-                    {
-                        delay(500);
-                    }
                     delayMicroseconds(100); //give pin time to set
 
                     if( GPIO_ReadInputDataBit(IMUF_EXTI_PORT, IMUF_EXTI_PIN) ) //IMU is ready to talk
@@ -258,105 +210,9 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
     return 0;
 }
 
-static int UpgradeBootloader(const gyroDev_t *gyro, uint32_t sizeOfBin)
-{
-    imufCommand_t reply;
-    imufCommand_t data;
-    #define START_LOCATION 0x08002000
-
-    volatile uint32_t startLocation = (uint32_t)((uint32_t*)(imuf_bin));
-    memset(&data, 0, sizeof(data));
-    //erase firmware on MCU
-    if( imuf9001SendReceiveCommand(gyro, BL_ERASE_ALL, &reply, &data) )
-    {
-        //good data
-        if( imuf9001SendReceiveCommand(gyro, BL_PREPARE_PROGRAM, &reply, &data) )
-        {
-            for(uint32_t x=0;x<(sizeOfBin);x+=32)
-            {
-                data.param1 = START_LOCATION+x;
-
-                data.param2 = (*(__IO uint32_t *)(startLocation+x));
-                data.param3 = (*(__IO uint32_t *)(startLocation+x+4));
-                data.param4 = (*(__IO uint32_t *)(startLocation+x+8));
-                data.param5 = (*(__IO uint32_t *)(startLocation+x+12));
-                data.param6 = (*(__IO uint32_t *)(startLocation+x+16));
-                data.param7 = (*(__IO uint32_t *)(startLocation+x+20));
-                data.param8 = (*(__IO uint32_t *)(startLocation+x+24));
-                data.param9 = (*(__IO uint32_t *)(startLocation+x+28));
-
-                if( imuf9001SendReceiveCommand(gyro, BL_WRITE_FIRMWARES, &reply, &data) )
-                {
-                    //continue writing
-                    LED0_TOGGLE;
-                }
-                else
-                {
-                    //error handler
-                    for(uint32_t x = 0; x<40; x++)
-                    {
-                        LED0_TOGGLE;
-                        delay(200);
-                    }
-                    LED0_OFF;
-                    return 0;
-                }
-            }
-
-            if( imuf9001SendReceiveCommand(gyro, BL_END_PROGRAM, &reply, &data) )
-            {
-                return 1;
-            }
-
-        }
-    }
-
-    return 0;
-
-}
-
-int updateImuf(const gyroDev_t *gyro)
-{
-
-    imufCommand_t reply;
-    imufCommand_t data;
-
-    //blink
-    resetBlink();
-
-    //config BL pin as output (shared with EXTI, this happens before EXTI init though)
-    configExtiAsOutput();
-
-    imufEXTIHi();    //set bl pin Hi
-    resetImuf9001(); //reset imuf, make three blinks
-    resetImuf9001(); //reset imuf, make three blinks
-    resetImuf9001(); //reset imuf, make three blinks
-    delay(100);      //delay 100 ms. give IMUF BL time to look for bl init pin
-    imufEXTILo();    //set bl pin Lo
-
-    //config EXTI as input so we can check imuf status
-    configExtiAsInput();
-
-    //check if BL is active
-    memset(&data, 0, sizeof(data));
-
-    if (imuf9001SendReceiveCommand(gyro, BL_REPORT_INFO, &reply, &data))
-    {
-        //good data
-        if (UpgradeBootloader(gyro, imuf_bin_len))
-        {
-            //reboot
-            //systemReset();
-            return 1;
-        }
-    }
-    return 0;
-}
-
 int imuf9001Whoami(const gyroDev_t *gyro)
 {
     uint32_t attempt;
-    uint32_t up_attempt = 0;
     imufCommand_t reply;
 
     for (attempt = 0; attempt < 5; attempt++)
@@ -364,22 +220,16 @@ int imuf9001Whoami(const gyroDev_t *gyro)
         if (imuf9001SendReceiveCommand(gyro, IMUF_COMMAND_REPORT_INFO, &reply, NULL))
         {
             imufCurrentVersion = (*(imufVersion_t *)&(reply.param1)).firmware;
-            if (imufCurrentVersion < imuf_bin_ver) {
+            if (imufCurrentVersion < IMUF_FIRMWARE_VERSION) {
                 //force update
-                while(1)
+                if( (*((__IO uint32_t *)UPT_ADDRESS)) != 0xFFFFFFFF )
                 {
-                    if (updateImuf(gyro))
-                    {
-                        return imuf_bin_ver;
-                    }
-
-                    if(up_attempt++ > 10)
-                    {
-                        return 0;
-                    }
+                    (*((__IO uint32_t *)0x2001FFEC)) = 0xF431FA77;
+                    delay(10);
+                    systemReset();
                 }
             } else {
-                return imuf_bin_ver;
+                return IMUF9001_WHO_AM_I_CONST;
             }
         }
     }
@@ -417,7 +267,13 @@ uint8_t imuf9001SpiDetect(gyroDev_t *gyro)
         }
         if(x > 4)
         {
-            updateImuf(gyro);
+            //force update
+            if( (*((__IO uint32_t *)UPT_ADDRESS)) != 0xFFFFFFFF )
+            {
+                (*((__IO uint32_t *)0x2001FFEC)) = 0xF431FA77;
+                delay(10);
+                systemReset();
+            }
         }
         returnCheck = imuf9001Whoami(gyro);
         if(returnCheck)
@@ -457,6 +313,7 @@ void imufSpiGyroInit(gyroDev_t *gyro)
     imufCommand_t txData;
     imufCommand_t rxData;
 
+
     rxData.param1 = VerifyAllowedCommMode(gyroConfig()->imuf_mode);
     rxData.param2 = ( (uint16_t)(gyroConfig()->imuf_rate+1) << 16 );
     rxData.param3 = ( (uint16_t)gyroConfig()->imuf_pitch_q << 16 ) | (uint16_t)gyroConfig()->imuf_pitch_w;
@@ -464,17 +321,35 @@ void imufSpiGyroInit(gyroDev_t *gyro)
     rxData.param5 = ( (uint16_t)gyroConfig()->imuf_yaw_q << 16 ) | (uint16_t)gyroConfig()->imuf_yaw_w;
     rxData.param6 = ( (uint16_t)gyroConfig()->imuf_pitch_lpf_cutoff_hz << 16) | (uint16_t)gyroConfig()->imuf_roll_lpf_cutoff_hz;
     rxData.param7 = ( (uint16_t)gyroConfig()->imuf_yaw_lpf_cutoff_hz << 16) | (uint16_t)0;
-    rxData.param8 = ( (int16_t)boardAlignment()->rollDeciDegrees << 16 ) | returnGyroAlignmentForImuf9001();
-    rxData.param9 = ( (int16_t)boardAlignment()->yawDeciDegrees << 16 ) | (int16_t)boardAlignment()->pitchDeciDegrees;
+    rxData.param8 = ( (int16_t)boardAlignment()->rollDeciDegrees << 16 )  | returnGyroAlignmentForImuf9001();
+    rxData.param9 = ( (int16_t)boardAlignment()->yawDeciDegrees << 16 )  | (int16_t)boardAlignment()->pitchDeciDegrees;
+
+/*
+???????????????????????????
+    rxData.param1 = VerifyAllowedCommMode(gyroConfig()->imuf_mode);
+    rxData.param2 = ( (uint16_t)(gyroConfig()->imuf_rate+1) << 16 );
+    rxData.param3 = ( (uint16_t)gyroConfig()->imuf_pitch_q << 16 ) | (uint16_t)gyroConfig()->imuf_pitch_w;
+    rxData.param4 = ( (uint16_t)gyroConfig()->imuf_roll_q << 16 ) | (uint16_t)gyroConfig()->imuf_roll_w;
+    rxData.param5 = ( (uint16_t)gyroConfig()->imuf_yaw_q << 16 ) | (uint16_t)gyroConfig()->imuf_yaw_w;
+    rxData.param6 = ( (uint16_t)gyroConfig()->imuf_pitch_lpf_cutoff_hz << 16) | (uint16_t)gyroConfig()->imuf_roll_lpf_cutoff_hz;
+    rxData.param7 = ( (uint16_t)gyroConfig()->imuf_yaw_lpf_cutoff_hz << 16) | (uint16_t)0;
+    rxData.param8 = ( (int16_t)boardAlignment()->rollDeciDegrees << 16 )  ???????????????| returnGyroAlignmentForImuf9001(); ???????????????
+    rxData.param9 = ( (int16_t)boardAlignment()->yawDeciDegrees << 16 ) ??????????????? | (int16_t)boardAlignment()->pitchDeciDegrees; ???????????????
+
+    rxData.param1 = VerifyAllowedCommMode(gyroConfig()->imuf_mode);
+    rxData.param2 = ( (uint16_t)(gyroConfig()->imuf_rate+1) << 16)              | (uint16_t)gyroConfig()->imuf_w;
+    rxData.param3 = ( (uint16_t)gyroConfig()->imuf_roll_q << 16)              | (uint16_t)gyroConfig()->imuf_pitch_q;
+    rxData.param4 = ( (uint16_t)gyroConfig()->imuf_yaw_q << 16)               | (uint16_t)gyroConfig()->imuf_roll_lpf_cutoff_hz;
+    rxData.param5 = ( (uint16_t)gyroConfig()->imuf_pitch_lpf_cutoff_hz << 16) | (uint16_t)gyroConfig()->imuf_yaw_lpf_cutoff_hz;
+    rxData.param6 = ( (uint16_t)0 << 16)                                      | (uint16_t)0;
+    rxData.param7 = ( (uint16_t)0 << 16)                                      | (uint16_t)0;
+    rxData.param8 = ( (int16_t)boardAlignment()->rollDegrees << 16 )   ???????????????        | imufGyroAlignment();
+    rxData.param9 = ( (int16_t)boardAlignment()->yawDegrees << 16 )  ???????????????          | (int16_t)boardAlignment()->pitchDegrees; ???????????????
+???????????????????????????
+*/
 
     for (attempt = 0; attempt < 10; attempt++)
     {
-        //if(attempt)
-        //{
-        //    resetImuf9001();
-        //    delay(300 * attempt);
-        //}
-
         if (imuf9001SendReceiveCommand(gyro, IMUF_COMMAND_SETUP, &txData, &rxData))
         {
             //enable EXTI

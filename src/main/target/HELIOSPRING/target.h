@@ -19,6 +19,8 @@
 
 #define TARGET_BOARD_IDENTIFIER "HESP"
 #define USBD_PRODUCT_STRING     "HELIOSPRING"
+#define UPT_ADDRESS  0x080F0000
+#define MSD_ADDRESS  0x080E0000
 
 // Use target-specific hardware descriptors (don't use common_hardware.c)
 
@@ -193,14 +195,14 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 // Number of available PWM outputs
-#define MAX_PWM_OUTPUT_PORTS    3
+#define MAX_PWM_OUTPUT_PORTS    5
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 
-#define USABLE_TIMER_CHANNEL_COUNT 3
+#define USABLE_TIMER_CHANNEL_COUNT 5
 //#define USED_TIMERS             ( TIM_N(1) | TIM_N(3) | TIM_N(8) | TIM_N(4) | TIM_N(12) )
 #define USED_TIMERS             ( TIM_N(3) | TIM_N(8) )
 
