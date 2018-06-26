@@ -78,6 +78,11 @@
 #include "drivers/vtx_common.h"
 
 #include "fc/cli.h"
+
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/dma_spi.h"
+#endif //USE_GYRO_IMUF9001
+
 #include "fc/config.h"
 #include "fc/fc_msp.h"
 #include "fc/fc_tasks.h"
@@ -546,7 +551,9 @@ void init(void)
 
     if (!sensorsAutodetect()) {
         // if gyro was not detected due to whatever reason, we give up now.
-        failureMode(FAILURE_MISSING_ACC);
+        flashLedsAndBeep();
+
+        //failureMode(FAILURE_MISSING_ACC);
     }
 
     addBootlogEvent2(BOOT_EVENT_SENSOR_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
@@ -568,6 +575,13 @@ void init(void)
     cliInit(serialConfig());
 #endif
 
+#ifdef USE_GYRO_IMUF9001
+    if(!gyroIsSane())
+    {
+        
+        ENABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
+    }
+#endif
     failsafeInit();
 
     rxInit();

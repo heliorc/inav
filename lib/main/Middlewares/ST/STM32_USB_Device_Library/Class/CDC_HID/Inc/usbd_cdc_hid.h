@@ -13,22 +13,14 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author: Chris Hockuba (https://github.com/conkerkh)
+ *
  */
 
 #pragma once
 
-#include "config/parameter_group.h"
+#include  "usbd_ioreq.h"
 
-typedef struct boardAlignment_s {
-    int16_t rollDeciDegrees;
-    int16_t pitchDeciDegrees;
-    int16_t yawDeciDegrees;
-} boardAlignment_t;
-
-PG_DECLARE(boardAlignment_t, boardAlignment);
-
-void initBoardAlignment(void);
-void updateBoardAlignment(int16_t roll, int16_t pitch);
-void applySensorAlignment(int32_t * dest, int32_t * src, uint8_t rotation);
-void applyBoardAlignment(int32_t *vec);
-bool isBoardAlignmentStandard(const boardAlignment_t *boardAlignment);
+extern USBD_ClassTypeDef  USBD_HID_CDC;
+#define USBD_HID_CDC_CLASS    &USBD_HID_CDC

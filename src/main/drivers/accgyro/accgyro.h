@@ -54,6 +54,7 @@ typedef struct gyroDev_s {
     volatile bool dataReady;
     uint32_t sampleRateIntervalUs;                      // Gyro driver should set this to actual sampling rate as signaled by IRQ
     sensor_align_e gyroAlign;
+    ioTag_t mpuIntExtiTag;
 } gyroDev_t;
 
 typedef struct accDev_s {
