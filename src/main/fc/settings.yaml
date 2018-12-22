@@ -156,6 +156,38 @@ groups:
         condition: USE_DUAL_GYRO
         min: 0
         max: 1
+      - name: imuf_mode
+        field: imuf_mode
+        min: 32
+        max: 48
+      - name: imuf_rate
+        field: imuf_rate
+        min: 0
+        max: 5
+      - name: imuf_pitch_q
+        field: imuf_pitch_q
+        min: 100
+        max: 16000
+      - name: imuf_roll_q
+        field: imuf_roll_q
+        min: 100
+        max: 16000
+      - name: imuf_yaw_q
+        field: imuf_yaw_q
+        min: 100
+        max: 16000
+      - name: imuf_pitch_w
+        field: imuf_pitch_w
+        min: 0
+        max: 200
+      - name: imuf_roll_w
+        field: imuf_roll_w
+        min: 0
+        max: 200
+      - name: imuf_yaw_w
+        field: imuf_yaw_w
+        min: 0
+        max: 200
 
   - name: PG_ADC_CHANNEL_CONFIG
     type: adcChannelConfig_t
