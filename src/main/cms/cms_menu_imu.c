@@ -476,7 +476,7 @@ static long cmsx_menuImuf_onExit(const OSD_Entry *self)
 #if defined(USE_GYRO_IMUF9001)
 static OSD_Entry cmsx_menuImufEntries[] =
 {
-    { "-- SPRING_IMUF --", OME_Label, NULL, NULL, 0 },
+    OSD_LABEL_ENTRY("-- SPRING_IMUF --"),
 
     { "MODE",      OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_mode,                0, 255,    1 }, 0 },
     { "PITCH Q",   OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_pitch_q,             0, 16000, 50 }, 0 },
@@ -489,8 +489,8 @@ static OSD_Entry cmsx_menuImufEntries[] =
     { "ROLL LPF",  OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_roll_lpf_cutoff_hz,  0, 255,    1 }, 0 },
     { "YAW LPF",   OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_yaw_lpf_cutoff_hz,   0, 255,    1 }, 0 },
 
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 #endif
 
@@ -500,7 +500,7 @@ static CMS_Menu cmsx_menuImuf = {
     .GUARD_text = "XIMUF",
     .GUARD_type = OME_MENU,
 #endif
-    .onEnter = cmsx_menuImuf_onEnter,
+    .onEnter = (CMSMenuFuncPtr)cmsx_menuImuf_onEnter,
     .onExit = cmsx_menuImuf_onExit,
     .entries = cmsx_menuImufEntries,
 };
@@ -547,14 +547,13 @@ static const OSD_Entry cmsx_menuImuEntries[] =
     // Global
     OSD_SUBMENU_ENTRY("GYRO GLB",  &cmsx_menuGyro),
 
-    {"GYRO GLB",  OME_Submenu, cmsMenuChange,                 &cmsx_menuGyro,                                              0},
 #if defined(USE_GYRO_IMUF9001)
-    {"IMUF",      OME_Submenu, cmsMenuChange,                 &cmsx_menuImuf,                                                0},
+    OSD_SUBMENU_ENTRY("IMUF",  &cmsx_menuImuf),
 #endif
 #ifdef NOT_YET
-    {"OTHER PP",  OME_Submenu, cmsMenuChange,                 &cmsx_menuProfileOther,                                      0},
+    OSD_SUBMENU_ENTRY("OTHER PP",  &cmsx_menuProfileOther),
     // Profile independent
-    {"FILT GLB",  OME_Submenu, cmsMenuChange,                 &cmsx_menuFilterGlobal,                                      0},
+    OSD_SUBMENU_ENTRY("FILT GLB",  &cmsx_menuFilterGlobal),
 #endif
 
     OSD_BACK_ENTRY,

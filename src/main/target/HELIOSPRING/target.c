@@ -33,3 +33,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM1,  IO_TAG(PA8), TIM_Channel_1, TIMER_OUTPUT_ENABLED, IOCFG_AF_PP_PD, GPIO_AF_TIM1, TIM_USE_FW_MOTOR | TIM_USE_FW_SERVO }, // M/S 5, fw.motor / servo
 
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
