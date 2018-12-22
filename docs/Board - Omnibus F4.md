@@ -22,7 +22,7 @@
 
 ## Hardware versions
 
-### Omnibus F4 v1
+### Omnibus F4 v1 - discontinued
 
 * Linear voltage stabilizer, tends to overheat
 * SBUS inverter connected to UART1
@@ -30,7 +30,7 @@
 * 128mbit flash memory for Blackbox
 * Uses target **OMNIBUSF4**
 
-### Omnibus F4 v3
+### Omnibus F4 v3 - discontinued
 
 * Switching voltage regulator - solves problem of overheating BEC
 * SD Card slot instead of flash memory
@@ -38,7 +38,7 @@
 * PPM and UART6 can be used together when S.BUS jumper is removed (close to PPM/SBUS connector)
 * Uses target **OMNIBUSF4V3**
 
-### Omnibus F4 v4
+### [Omnibus F4 v4/v5](https://inavflight.com/shop/p/OMNIBUSF4V5)
 
 * Switching voltage regulator - solves problem of overheating BEC
 * SD Card slot instead of flash memory
@@ -46,7 +46,7 @@
 * PPM and UART6 cannot be used together, there is no jumper to disconnect PPM input from UART6 RX
 * Uses target **OMNIBUSF4V3**
 
-### Omnibus F4 Pro
+### [Omnibus F4 Pro](https://inavflight.com/shop/p/OMNIBUSF4PRO)
 
 * Sometimes called Omnibus F4 v2 Pro, but also exists v3, v4 & v5 versions with no functional differences
 * Switching voltage regulator - solves problem of overheating BEC
@@ -67,11 +67,17 @@
 * Integrated current meter
 * Uses target **OMNIBUSF4PRO**
 
+### Omnibus F4 Nano V6
+
+* Switching voltage regulator - solves problem of overheating BEC
+* SPI flash memory for blacbox
+* SBUS inverter connected to UART1
+* Uses target **FIREWORKSV2**
+
 ## **NOT** supported
 
 * HC-SR04 Rangefinder
 * ServoTilt
-* Channel Forwarding
 
 ## Radio Receivers
 
@@ -133,6 +139,8 @@ For Omnibus F4 Pro clones (Banggood, AliExpress, eBay, etc.) use **OMNIBUSF4PRO_
 
 ## SoftwareSerial
 
+### Omnibus F4 v1/v2 SoftwareSerial Connections
+
 This board allows for single **SoftwareSerial** port on small soldering pads located on the bottom side of the board.
 Please note that this is *not* the motor PWM5/PWM6 pins, but small surface mount pads CH5/CH6.
 
@@ -144,9 +152,18 @@ Please note that this is *not* the motor PWM5/PWM6 pins, but small surface mount
 | CH5   | RX                    |
 | CH6   | TX                    |
 
-## SoftwareSerial
-
 ![Omnibus F4 Pro SmartPort using SoftwareSerial](assets/images/omnibusf4pro_ss.png)
+
+### Omnibus F4 v3/v4/v5 SoftwareSerial Connections
+
+The SOFTSERIAL1 is an uni-directional port mapped to UART6-TX pin.
+When enabled, the UART6 is still available as hardware port but it's then RX-only port (good for e.g. receiving S.BUS input). TX instead is controlled in software and can be used for transmitting one-way telemetry (e.g. LTM). Please note that UART6-TX line passes programmable inverter on those boards, so it is a pure output-only port. SmartPort/FPort telemetry requires bi-directional communication, so it is not possible on this port without hardware modification (bypassing the inverter).
+
+## Where to buy:
+
+* [Omnibus F4 v5](https://inavflight.com/shop/p/OMNIBUSF4V5)
+* [Omnibus F4 Pro](https://inavflight.com/shop/p/OMNIBUSF4PRO)
+* [Omnibus F4 Nano V6](https://inavflight.com/shop/s/bg/1320256)
 
 # Wiring diagrams for Omnibus F4 Pro
 

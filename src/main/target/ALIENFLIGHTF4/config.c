@@ -56,8 +56,8 @@
 void targetConfiguration(void)
 {
     serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_RX_SERIAL;
-    batteryConfigMutable()->current.offset = CURRENTOFFSET;
-    batteryConfigMutable()->current.scale = CURRENTSCALE;
+    batteryMetersConfigMutable()->current.offset = CURRENTOFFSET;
+    batteryMetersConfigMutable()->current.scale = CURRENTSCALE;
 
     if (hardwareMotorType == MOTOR_BRUSHED) {
         motorConfigMutable()->motorPwmProtocol = PWM_TYPE_BRUSHED;
@@ -71,7 +71,6 @@ void targetConfiguration(void)
     } else {
         rxConfigMutable()->serialrx_provider = SERIALRX_SBUS;
         serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_TELEMETRY_FRSKY;
-        telemetryConfigMutable()->telemetry_inversion = 0;
         featureConfigMutable()->enabledFeatures |= (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY);
     }
 

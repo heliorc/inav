@@ -26,16 +26,17 @@
 
 typedef enum {
     GYRO_NONE = 0,
-    GYRO_AUTODETECT = 1,
-    GYRO_MPU6050 = 2,
-    GYRO_L3G4200D = 3,
-    GYRO_MPU3050 = 4,
-    GYRO_L3GD20 = 5,
-    GYRO_MPU6000 = 6,
-    GYRO_MPU6500 = 7,
-    GYRO_MPU9250 = 8,
-    GYRO_IMUF9001 = 9,
-    GYRO_FAKE,    
+    GYRO_AUTODETECT,
+    GYRO_MPU6050,
+    GYRO_L3G4200D,
+    GYRO_MPU3050,
+    GYRO_L3GD20,
+    GYRO_MPU6000,
+    GYRO_MPU6500,
+    GYRO_MPU9250,
+    GYRO_BMI160,
+    GYRO_IMUF9001,
+    GYRO_FAKE
 } gyroSensor_e;
 
 typedef struct gyro_s {
@@ -69,6 +70,7 @@ typedef struct gyroConfig_s {
     uint16_t gyro_soft_notch_cutoff_1;
     uint16_t gyro_soft_notch_hz_2;
     uint16_t gyro_soft_notch_cutoff_2;
+    uint16_t gyro_stage2_lowpass_hz;
 #if defined(USE_GYRO_IMUF9001)
     uint16_t imuf_mode;
     uint16_t imuf_rate;

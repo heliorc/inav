@@ -86,7 +86,7 @@ STATIC_FASTRAM fpVector3_t vCorrectedMagNorth;             // Magnetic North vec
 
 FASTRAM fpQuaternion_t orientation;
 FASTRAM attitudeEulerAngles_t attitude;             // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
-STATIC_FASTRAM_UNIT_TESTED float rMat[3][3];
+FASTRAM float rMat[3][3];
 
 STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
 
@@ -386,24 +386,27 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
     quaternionInitFromVector(&deltaQ, &vTheta);
     const float thetaMagnitudeSq = vectorNormSquared(&vTheta);
 
-    // Calculate quaternion delta:
-    // Theta is a axis/angle rotation. Direction of a vector is axis, magnitude is angle/2.
-    // Proper quaternion from axis/angle involves computing sin/cos, but the formula becomes numerically unstable as Theta approaches zero.
-    // For near-zero cases we use the first 3 terms of the Taylor series expansion for sin/cos. We check if fourth term is less than machine precision -
-    // then we can safely use the "low angle" approximated version without loss of accuracy.
-    if (thetaMagnitudeSq < sqrtf(24.0f * 1e-6f)) {
-        quaternionScale(&deltaQ, &deltaQ, 1.0f - thetaMagnitudeSq / 6.0f);
-        deltaQ.q0 = 1.0f - thetaMagnitudeSq / 2.0f;
-    }
-    else {
-        const float thetaMagnitude = sqrtf(thetaMagnitudeSq);
-        quaternionScale(&deltaQ, &deltaQ, sin_approx(thetaMagnitude) / thetaMagnitude);
-        deltaQ.q0 = cos_approx(thetaMagnitude);
-    }
+    // If calculated rotation is zero - don't update quaternion
+    if (thetaMagnitudeSq >= 1e-20) {
+        // Calculate quaternion delta:
+        // Theta is a axis/angle rotation. Direction of a vector is axis, magnitude is angle/2.
+        // Proper quaternion from axis/angle involves computing sin/cos, but the formula becomes numerically unstable as Theta approaches zero.
+        // For near-zero cases we use the first 3 terms of the Taylor series expansion for sin/cos. We check if fourth term is less than machine precision -
+        // then we can safely use the "low angle" approximated version without loss of accuracy.
+        if (thetaMagnitudeSq < sqrtf(24.0f * 1e-6f)) {
+            quaternionScale(&deltaQ, &deltaQ, 1.0f - thetaMagnitudeSq / 6.0f);
+            deltaQ.q0 = 1.0f - thetaMagnitudeSq / 2.0f;
+        }
+        else {
+            const float thetaMagnitude = sqrtf(thetaMagnitudeSq);
+            quaternionScale(&deltaQ, &deltaQ, sin_approx(thetaMagnitude) / thetaMagnitude);
+            deltaQ.q0 = cos_approx(thetaMagnitude);
+        }
 
-    // Calculate final orientation and renormalize
-    quaternionMultiply(&orientation, &orientation, &deltaQ);
-    quaternionNormalize(&orientation, &orientation);
+        // Calculate final orientation and renormalize
+        quaternionMultiply(&orientation, &orientation, &deltaQ);
+        quaternionNormalize(&orientation, &orientation);
+    }
 
     // Check for invalid quaternion
     imuCheckAndResetOrientationQuaternion(accBF);
@@ -460,7 +463,7 @@ static void imuCalculateEstimatedAttitude(float dT)
 
 #if defined(USE_GPS)
     if (STATE(FIXED_WING)) {
-        bool canUseCOG = sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6 && gpsSol.groundSpeed >= 300;
+        bool canUseCOG = isGPSHeadingValid();
 
         if (canUseCOG) {
             if (gpsHeadingInitialized) {
@@ -504,9 +507,9 @@ static void imuCalculateEstimatedAttitude(float dT)
 
     fpVector3_t measuredMagBF = { .v = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
 
-    imuMahonyAHRSupdate(dT, &imuMeasuredRotationBF, 
-                            useAcc ? &imuMeasuredAccelBF : NULL, 
-                            useMag ? &measuredMagBF : NULL, 
+    imuMahonyAHRSupdate(dT, &imuMeasuredRotationBF,
+                            useAcc ? &imuMeasuredAccelBF : NULL,
+                            useMag ? &measuredMagBF : NULL,
                             useCOG, courseOverGround);
 
     imuUpdateEulerAngles();
@@ -545,6 +548,19 @@ void imuUpdateAccelerometer(void)
 #endif
 }
 
+void imuCheckVibrationLevels(void)
+{
+    fpVector3_t accVibeLevels;
+
+    accGetVibrationLevels(&accVibeLevels);
+    const uint32_t accClipCount = accGetClipCount();
+
+    DEBUG_SET(DEBUG_VIBE, 0, accVibeLevels.x * 100);
+    DEBUG_SET(DEBUG_VIBE, 1, accVibeLevels.y * 100);
+    DEBUG_SET(DEBUG_VIBE, 2, accVibeLevels.z * 100);
+    DEBUG_SET(DEBUG_VIBE, 3, accClipCount);
+}
+
 void imuUpdateAttitude(timeUs_t currentTimeUs)
 {
     /* Calculate dT */
@@ -557,6 +573,7 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
         if (!hilActive) {
             gyroGetMeasuredRotationRate(&imuMeasuredRotationBF);    // Calculate gyro rate in body frame in rad/s
             accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
+            imuCheckVibrationLevels();
             imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
         }
         else {
@@ -566,6 +583,7 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
 #else
         gyroGetMeasuredRotationRate(&imuMeasuredRotationBF);    // Calculate gyro rate in body frame in rad/s
         accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
+        imuCheckVibrationLevels();
         imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
 #endif
     } else {
