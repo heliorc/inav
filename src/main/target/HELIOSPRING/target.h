@@ -45,9 +45,11 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 
-#define USE_PITOT_ADC
 #define USE_PITOT_MS4525
-#define PITOT_I2C_BUS            BUS_I2C2
+#define USE_PITOT_EAGLE_TREE
+#define PITOT_I2C_BUS           BUS_I2C2
+#define MS4525_I2C_BUS          PITOT_I2C_BUS
+#define EAGLE_TREE_I2C_BUS      PITOT_I2C_BUS
 
 #define USE_GYRO
 #define USE_ACC

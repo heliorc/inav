@@ -13,6 +13,7 @@ TARGET_SRC = stm32f4xx_crc.c \
              drivers/compass/compass_mag3110.c \
              drivers/compass/compass_qmc5883l.c \
              drivers/compass/compass_ist8310.c \
+             drivers/pitotmeter_eagle_tree.c \
              drivers/pitotmeter_ms4525.c \
              drivers/accgyro/accgyro_imuf9001.c \
              drivers/max7456.c
