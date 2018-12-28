@@ -174,42 +174,6 @@ void flashLedsAndBeep(void)
     LED1_OFF;
 }
 
-void rebootUpdater(void)
-{
-    #ifdef UPT_ADDRESS
-    typedef void (*pFunction)(void);
-   	pFunction JumpToApplication;
-	uint32_t jumpAddress;
-
-    __disable_irq(); // disable interrupts for jump
-
-    jumpAddress = *(__IO uint32_t*)(UPT_ADDRESS + 4);
-    JumpToApplication = (pFunction)jumpAddress;
-
-    // Initialize user application's Stack Pointer
-    __set_MSP(*(__IO uint32_t*)UPT_ADDRESS);
-    JumpToApplication();
-    #endif
-}
-
-void rebootMsd(void)
-{
-    #ifdef MSD_ADDRESS
-    typedef void (*pFunction)(void);
-   	pFunction JumpToApplication;
-	uint32_t jumpAddress;
-
-    __disable_irq(); // disable interrupts for jump
-
-    jumpAddress = *(__IO uint32_t*)(MSD_ADDRESS + 4);
-    JumpToApplication = (pFunction)jumpAddress;
-
-    // Initialize user application's Stack Pointer
-    __set_MSP(*(__IO uint32_t*)MSD_ADDRESS);
-    JumpToApplication();
-    #endif
-}
-
 void init(void)
 {
 #ifdef USE_HAL_DRIVER

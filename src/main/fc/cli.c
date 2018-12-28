@@ -2064,18 +2064,6 @@ static void cliEleresBind(char *cmdline)
 }
 #endif // USE_RX_ELERES
 
-#ifdef USE_GYRO_IMUF9001
-static void cliImufUpdate(char *cmdline)
-{
-    UNUSED(cmdline);
-    cliPrint("I muff, you muff, we all muff for IMU-F!");
-    cliPrintLinefeed();
-    (*((uint32_t *)0x2001FFEC)) = 0xF431FA77;
-    delay(1000);
-    cliReboot();
-}
-#endif
-
 #ifdef MSD_ADDRESS
 static void cliMsd(char *cmdline)
 {
@@ -2842,9 +2830,6 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_RX_ELERES
     CLI_COMMAND_DEF("eleres_bind", NULL, NULL, cliEleresBind),
 #endif // USE_RX_ELERES
-#ifdef USE_GYRO_IMUF9001
-    CLI_COMMAND_DEF("imufupdate", "update imu-f's firmware", NULL, cliImufUpdate),
-#endif
 #ifdef MSD_ADDRESS
     CLI_COMMAND_DEF("msd", "boot into USB drive mode to download log files", NULL, cliMsd),
 #endif

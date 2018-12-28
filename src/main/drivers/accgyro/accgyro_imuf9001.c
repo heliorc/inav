@@ -220,17 +220,7 @@ int imuf9001Whoami(const gyroDev_t *gyro)
         if (imuf9001SendReceiveCommand(gyro, IMUF_COMMAND_REPORT_INFO, &reply, NULL))
         {
             imufCurrentVersion = (*(imufVersion_t *)&(reply.param1)).firmware;
-            if (imufCurrentVersion < IMUF_FIRMWARE_VERSION) {
-                //force update
-                if( (*((__IO uint32_t *)UPT_ADDRESS)) != 0xFFFFFFFF )
-                {
-                    (*((__IO uint32_t *)0x2001FFEC)) = 0xF431FA77;
-                    delay(10);
-                    systemReset();
-                }
-            } else {
-                return IMUF9001_WHO_AM_I_CONST;
-            }
+            return imufCurrentVersion;
         }
     }
     return (0);
@@ -263,17 +253,6 @@ uint8_t imuf9001SpiDetect(gyroDev_t *gyro)
         if (x>3)
         {
             resetImuf9001();
-            resetImuf9001();
-        }
-        if(x > 4)
-        {
-            //force update
-            if( (*((__IO uint32_t *)UPT_ADDRESS)) != 0xFFFFFFFF )
-            {
-                (*((__IO uint32_t *)0x2001FFEC)) = 0xF431FA77;
-                delay(10);
-                systemReset();
-            }
         }
         returnCheck = imuf9001Whoami(gyro);
         if(returnCheck)

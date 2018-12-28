@@ -19,8 +19,6 @@
 
 #define TARGET_BOARD_IDENTIFIER "HESP"
 #define USBD_PRODUCT_STRING     "HELIOSPRING"
-#define UPT_ADDRESS  0x080F0000
-#define MSD_ADDRESS  0x080E0000
 
 // Use target-specific hardware descriptors (don't use common_hardware.c)
 
